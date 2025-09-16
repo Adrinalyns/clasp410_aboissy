@@ -1,12 +1,26 @@
 #!/usr/bin/env python3
 '''
-This code solves the N-layer atmosphere model, where each layer as an uniform emissivity epsilon
+This code solves the N-layer atmosphere model, where each layer as an uniform emissivity epsilon.
+It plots all the results used in the report
+
+TO REPRODUCE THE VALUES AND PLOTS IN MY REPORT, DO THIS:
+
+XXXXXXXXX
+X
+X
+X
+X
+
 
 '''
 import numpy as np
 import matplotlib.pyplot as plt
 
-sigma=5.6703e-8
+plt.style.use('seaborn-darkgrid')
+
+#Physical constant
+sigma=5.6703e-8 # W/m2/K-4
+t_earth_surface=288. # K
 
 def solve_N_layer(n_layers,epsilon,s0=1370.,alpha=0.3):
     '''
@@ -111,7 +125,7 @@ def validate_model(detail):
         print(f'\tThe real temperature of Earth is {t_real1[0]}')
         for i in range(1,4):
             print(f'\tThe coded temperature of the layer {i} is {t_code1[i]} °C')
-            print(f'\tThe real temperature of the layer {i} is {t_real1[i]} 0C')
+            print(f'\tThe real temperature of the layer {i} is {t_real1[i]} °C')
     
     #Calculation of the max difference between our model and the theoritical one
     max_error=max(t_real1-t_code1)
@@ -127,9 +141,75 @@ def validate_model(detail):
         print(f'\tThe real temperature of Earth is {t_real2[0]}')
         for i in range(1,6):
             print(f'\tThe coded temperature of the layer {i} is {t_code2[i]} °C')
-            print(f'\tThe real temperature of the layer {i} is {t_real2[i]} 0C')
+            print(f'\tThe real temperature of the layer {i} is {t_real2[i]} °C')
         
     #Calculation of the max difference between our model and the theoritical one
     max_error=max(t_real2-t_code2)
     
     print(f'\n \tThe maximum difference in temperature between our model and the ideal one is {max_error} °C')
+
+def question3a():
+    #Plot of the Earth's surface temperature wrt the emissivity for a single layer atmosphere
+
+    epsi_array=np.arange(0.01,1,0.01)
+    t_earth_array=np.array([solve_N_layer(1,epsilon,s0=1350)[0] for epsilon in epsi_array])
+
+    #Let's find the emissivity of the single-layer atmosphere to have a surface temperature of t_earth_surface=288K
+    idx = np.argmin(np.abs(t_earth_array - 288))
+    earth_epsilon = epsi_array[idx]
+    print(f"To match Earth's surface temperature with a single layer, the emissivity should be {earth_epsilon}")
+
+    #plotting the figure for Q3)a)
+    fig,ax=plt.subplots(1,1)
+
+    ax.plot(epsi_array,t_earth_array, label="Temperature of Earth's surface")
+
+    ax.axhline(y=t_earth_surface, color='r', linestyle='--')
+    ax.text(plt.xlim()[0], t_earth_surface, f" y = {t_earth_surface:.0f} K", ha="left", va="bottom", color="r", fontsize=10)
+
+    ax.axvline(x=earth_epsilon, color='r', linestyle='--')
+    ax.text(earth_epsilon, plt.ylim()[0], f" x = {earth_epsilon:.2f}", ha="left", va="bottom", color="r", fontsize=10)
+
+    ax.set_xlabel("Emissivity of the atmosphere")
+    ax.set_ylabel("Temperature of the atmosphere (K)")
+    ax.set_title("Evolution of Earth's surface temperature wrt the emissivity of a single layer atmosphere")
+    ax.legend()
+
+def question3b():
+
+    #plotting the figure for Q3)b)
+
+    epsilon_earth=0.255
+
+    nb_layer_array=np.arange(1,11,1)
+    t_earth_array2=np.array([solve_N_layer(nb_layer,epsilon_earth,s0=1350)[0] for nb_layer in nb_layer_array])
+
+
+
+
+    #Let's find the number of layers for an atmosphere whose emissivity is 0.255 to have a surface temperature of t_earth_surface=288K
+    idx = np.argmin(np.abs(t_earth_array2 - 288))
+    earth_nb_layers = nb_layer_array[idx]
+    print(f"To match Earth's surface temperature with an emissivity of {epsilon_earth}, earth should have {earth_nb_layers} layers")
+
+    #Let's calculate the temperature of earth's atmosphere wrt the altitude 
+    t_earth_layers=solve_N_layer(earth_nb_layers,epsilon_earth,s0=1350)
+    altitudes=np.linspace(0,100,earth_nb_layers+1)
+
+
+    fig2,(ax21,ax22)=plt.subplots(2,1)
+    ax21.plot(nb_layer_array,t_earth_array2)
+    ax21.set_title("Temperature of Earth's surface wrt the number of layers")
+    ax21.set_xlabel("Number of layers")
+    ax21.set_ylabel("Temperature (K)")
+
+    ax21.axhline(y=t_earth_surface, color='r', linestyle='--')
+    ax21.text(plt.xlim()[0], t_earth_surface, f" y = {t_earth_surface:.0f} K", ha="left", va="bottom", color="r", fontsize=10)
+
+    ax21.axvline(x=earth_nb_layers, color='r', linestyle='--')
+    ax21.text(earth_nb_layers, plt.ylim()[0], f" x = {earth_nb_layers:.2f}", ha="left", va="bottom", color="r", fontsize=10)
+
+    ax22.plot(t_earth_layers,altitudes)
+    ax22.set_title(f"Temperatures in a 4 layers atmosphere with an emissivity of {epsilon_earth} ")
+    ax22.set_xlabel("Temperature (K)")
+    ax22.set_ylabel("Altitude (km)")
