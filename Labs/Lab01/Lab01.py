@@ -15,6 +15,7 @@ X
 '''
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 plt.style.use('seaborn-darkgrid')
 
@@ -22,7 +23,7 @@ plt.style.use('seaborn-darkgrid')
 sigma=5.6703e-8 # W/m2/K-4
 t_earth_surface=288. # K
 
-def solve_N_layer(n_layers,epsilon,s0=1370.,alpha=0.3):
+def solve_N_layer(n_layers,epsilon,s0=1370.,alpha=0.3,debug=0):
     '''
     This code solves the N-layer atmosphere model (with a constant emissivity)
     by resolving the matrix equation AX=b.
@@ -44,6 +45,9 @@ def solve_N_layer(n_layers,epsilon,s0=1370.,alpha=0.3):
     epsilon: float
         the emissivity of the layers (uniform in this model)
 
+    debug: bool, default to 0
+        When debug is set to 1, it prints out the matrix A and the array b
+
     Returns:
     ----------
     t_array: vector of float
@@ -51,35 +55,37 @@ def solve_N_layer(n_layers,epsilon,s0=1370.,alpha=0.3):
         the Temperature of each layer in Celsius
 
     '''
-    #introducing a debug variable
-    debug=False
 
     # Create array of coefficients, an N+1xN+1 array:
     A = np.zeros([n_layers+1, n_layers+1])
     b = np.zeros(n_layers+1)
 
-
     # Populate based on our model:
-    # the first equation is different from the other one, let populate A and b for this equation
+    # the first equation is different from the other one, however I multiplied this equation by epsilon
+    # to have truly symmetrical matrix, this is why b[0] is multiplied by epsilon
     b[0]=-s0*(1-alpha)/4*epsilon
-    A[0,0]=-epsilon
-    for j in range(1,n_layers+1):
-        A[0,j]=epsilon*(1-epsilon)**(j-1)
     
-    #the remaining N equations should be completed with the generic formula that we found
-    for i in range(1,n_layers+1):
+    #We can now populate the matrix, to make it faster, I first populate it like the diagonal was full of -2,
+    for i in range(n_layers+1):
         for j in range(n_layers+1):
-            if(j>=0 and j<i):
-                A[i, j] =epsilon*(1-epsilon)**((i-1)-j)
-            elif(j>i and j<=n_layers):
-                A[i, j] =epsilon*(1-epsilon)**(j-(i+1))
-            else:
+            if i==j:
                 A[i,j]=-2
-        b[i] =0
+            else:
+                A[i,j]=epsilon*(1-epsilon)**(abs(j-i)-1) # I figured out that using np.abs() make it much slower than using abs()
     
+    #Then I change A[0,0] number to respect the real matrix, it should be -1 but because 
+    #I multiplied the first equation by epsilon it becomes -epsilon
+    A[0,0]=-epsilon 
+    
+    """
+    or : if i==j:
+            A[i,j]=-2+1*(j==0)
+        else:
+            A[i,j]=epsilon**(i>0)*(1-epsilon)**(np.abs(j-i)-1)
+    """
+
     if debug:
         print(A,b)
-
     # Invert matrix:
     Ainv = np.linalg.inv(A)
     # Get solution:
@@ -87,13 +93,12 @@ def solve_N_layer(n_layers,epsilon,s0=1370.,alpha=0.3):
     
     #The earth is considered as a Black body so its emissivity is 1 
     #and can be different from epsilon, so a different calculus is needed 
-    #to derive Erath Temperature from its radiation flux, than for the atmosphere layers
+    #to derive Earth Temperature from its radiation flux, than for the atmosphere layers
     t0=(fluxes[0]/sigma)**0.25 
     t_array=(fluxes/sigma/epsilon)**0.25
     t_array[0]=t0
 
     return t_array
-
 
 def validate_model(detail):
     '''
@@ -107,11 +112,15 @@ def validate_model(detail):
         You can chose detail=0 if you only want see the maximum difference between our code and the ideal one
         You can chose detail=1 if you want to see all the detail of layers'temperature
 
+    returns:
+    -------
+    It prints the difference between the results given by my code and the wanted results in the following 2 situations
+
     We will take 2 examples :
     - n_layers=4, epsilon=1, alpha=0.3, s0=1370 W/m2
-    t_real1=[381.3,360.6,335.6,303.3,255.0]
+      t_real1=[381.3,360.6,335.6,303.3,255.0]
     - n_layers=6, epsilon=0.45, alpha=0.33, s0=1350 W/m2
-    t_real2=[323.4,302.4,291.3,278.9,262.2,247.1,225.2]
+      t_real2=[323.4,302.4,291.3,278.9,262.2,247.1,225.2]
     '''
 
     t_real1=[381.3,360.6,335.6,303.3,255.0]
@@ -213,3 +222,41 @@ def question3b():
     ax22.set_title(f"Temperatures in a 4 layers atmosphere with an emissivity of {epsilon_earth} ")
     ax22.set_xlabel("Temperature (K)")
     ax22.set_ylabel("Altitude (km)")
+
+""" epsilon_venus=1
+t_venus=700 # K
+s0_venus=2600 # W/m2
+albedo_venus=0.71
+
+nb_layer_array=np.arange(1,11,1)
+t_venus_array=np.array([solve_N_layer(nb_layer,epsilon_venus,s0=s0_venus, alpha=albedo_venus)[0] for nb_layer in nb_layer_array])
+
+
+
+
+#Let's find the number of layers for an atmosphere whose emissivity is 0.255 to have a surface temperature of t_earth_surface=288K
+idx = np.argmin(np.abs(t_venus_array - t_venus))
+venus_nb_layers = nb_layer_array[idx]
+print(f"To match Venus's surface temperature with an emissivity of {epsilon_venus}, earth should have {earth_nb_layers} layers")
+
+#Let's calculate the temperature of earth's atmosphere wrt the altitude 
+t_earth_layers=solve_N_layer(earth_nb_layers,epsilon_earth,s0=1350)
+altitudes=np.linspace(0,100,earth_nb_layers+1)
+
+
+fig2,(ax21,ax22)=plt.subplots(2,1)
+ax21.plot(nb_layer_array,t_earth_array2)
+ax21.set_title("Temperature of Earth's surface wrt the number of layers")
+ax21.set_xlabel("Number of layers")
+ax21.set_ylabel("Temperature (K)")
+
+ax21.axhline(y=t_earth_surface, color='r', linestyle='--')
+ax21.text(plt.xlim()[0], t_earth_surface, f" y = {t_earth_surface:.0f} K", ha="left", va="bottom", color="r", fontsize=10)
+
+ax21.axvline(x=earth_nb_layers, color='r', linestyle='--')
+ax21.text(earth_nb_layers, plt.ylim()[0], f" x = {earth_nb_layers:.2f}", ha="left", va="bottom", color="r", fontsize=10)
+
+ax22.plot(t_earth_layers,altitudes)
+ax22.set_title(f"Temperatures in a 4 layers atmosphere with an emissivity of {epsilon_earth} ")
+ax22.set_xlabel("Temperature (K)")
+ax22.set_ylabel("Altitude (km)") """
