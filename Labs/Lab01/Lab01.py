@@ -158,8 +158,13 @@ def validate_model(detail):
     print(f'\n \tThe maximum difference in temperature between our model and the ideal one is {max_error} °C')
 
 def question3a():
-    #Plot of the Earth's surface temperature wrt the emissivity for a single layer atmosphere
+    """
+    This function calculates and plots the Temperature of Earth surface corresponding to a single-layer atmosphere 
+    with an emissivity varying from 0 to 1, and plots it 
+    Then it finds the emissivity that gives a surface temperature corresponding to the real one, and plots it
+    """
 
+    #calculating 
     epsi_array=np.arange(0.01,1,0.01)
     t_earth_array=np.array([solve_N_layer(1,epsilon,s0=1350)[0] for epsilon in epsi_array])
 
@@ -190,6 +195,7 @@ def question3b():
 
     epsilon_earth=0.255
 
+    #Generating the surface temperatures for each nb of layer
     nb_layer_array=np.arange(1,11,1)
     t_earth_array2=np.array([solve_N_layer(nb_layer,epsilon_earth,s0=1350)[0] for nb_layer in nb_layer_array])
 
@@ -205,58 +211,55 @@ def question3b():
     t_earth_layers=solve_N_layer(earth_nb_layers,epsilon_earth,s0=1350)
     altitudes=np.linspace(0,100,earth_nb_layers+1)
 
-
+    #Plotting the Temperature od Earth'S surface wrt the number of layers
     fig2,(ax21,ax22)=plt.subplots(2,1)
     ax21.plot(nb_layer_array,t_earth_array2)
     ax21.set_title("Temperature of Earth's surface wrt the number of layers")
     ax21.set_xlabel("Number of layers")
     ax21.set_ylabel("Temperature (K)")
 
+    #Plotting the optimal number of layer to match Earth's surface temperature
     ax21.axhline(y=t_earth_surface, color='r', linestyle='--')
     ax21.text(plt.xlim()[0], t_earth_surface, f" y = {t_earth_surface:.0f} K", ha="left", va="bottom", color="r", fontsize=10)
 
     ax21.axvline(x=earth_nb_layers, color='r', linestyle='--')
     ax21.text(earth_nb_layers, plt.ylim()[0], f" x = {earth_nb_layers:.2f}", ha="left", va="bottom", color="r", fontsize=10)
 
+    #Plotting the Temperature within the Earth's atmosphere for the realistic number of layers
     ax22.plot(t_earth_layers,altitudes)
     ax22.set_title(f"Temperatures in a 4 layers atmosphere with an emissivity of {epsilon_earth} ")
     ax22.set_xlabel("Temperature (K)")
     ax22.set_ylabel("Altitude (km)")
 
-""" epsilon_venus=1
-t_venus=700 # K
-s0_venus=2600 # W/m2
-albedo_venus=0.71
+def question4():
+    epsilon_venus=1 # each layer absorbs all the long wave energy
+    t_venus=700 # K
+    s0_venus=2600 # W/m2
+    albedo_venus=0.71
 
-nb_layer_array=np.arange(1,11,1)
-t_venus_array=np.array([solve_N_layer(nb_layer,epsilon_venus,s0=s0_venus, alpha=albedo_venus)[0] for nb_layer in nb_layer_array])
+    #Generating the surface temperatures for each nb of layer
+    nb_layer_array=np.arange(1,100,1)
+    t_venus_array=np.array([solve_N_layer(nb_layer,epsilon_venus,s0=s0_venus, alpha=albedo_venus)[0] for nb_layer in nb_layer_array])
 
-
-
-
-#Let's find the number of layers for an atmosphere whose emissivity is 0.255 to have a surface temperature of t_earth_surface=288K
-idx = np.argmin(np.abs(t_venus_array - t_venus))
-venus_nb_layers = nb_layer_array[idx]
-print(f"To match Venus's surface temperature with an emissivity of {epsilon_venus}, earth should have {earth_nb_layers} layers")
-
-#Let's calculate the temperature of earth's atmosphere wrt the altitude 
-t_earth_layers=solve_N_layer(earth_nb_layers,epsilon_earth,s0=1350)
-altitudes=np.linspace(0,100,earth_nb_layers+1)
+    #Let's find the number of layers for an atmosphere whose emissivity is 0.71 to have a surface temperature of t_venus_surface=700K
+    idx = np.argmin(np.abs(t_venus_array - t_venus))
+    venus_nb_layers = nb_layer_array[idx]
+    print(f"To match Venus' surface temperature with an emissivity of {epsilon_venus}, earth should have {venus_nb_layers} layers")
 
 
-fig2,(ax21,ax22)=plt.subplots(2,1)
-ax21.plot(nb_layer_array,t_earth_array2)
-ax21.set_title("Temperature of Earth's surface wrt the number of layers")
-ax21.set_xlabel("Number of layers")
-ax21.set_ylabel("Temperature (K)")
+    #Plotting the Temperature od Venus' surface wrt the number of layers 
+    fig2,ax=plt.subplots(1,1)
+    ax.plot(nb_layer_array,t_venus_array)
+    ax.set_title("Temperature of Venus' surface wrt the number of layers")
+    ax.set_xlabel("Number of layers")
+    ax.set_ylabel("Temperature (K)")
 
-ax21.axhline(y=t_earth_surface, color='r', linestyle='--')
-ax21.text(plt.xlim()[0], t_earth_surface, f" y = {t_earth_surface:.0f} K", ha="left", va="bottom", color="r", fontsize=10)
+    #Plotting the optimal number of layer to match venus' surface temperature
 
-ax21.axvline(x=earth_nb_layers, color='r', linestyle='--')
-ax21.text(earth_nb_layers, plt.ylim()[0], f" x = {earth_nb_layers:.2f}", ha="left", va="bottom", color="r", fontsize=10)
+    ax.axhline(y=t_venus, color='r', linestyle='--')
+    ax.text(plt.xlim()[0], t_venus, f" y = {t_venus:.0f} K", ha="left", va="bottom", color="r", fontsize=10)
 
-ax22.plot(t_earth_layers,altitudes)
-ax22.set_title(f"Temperatures in a 4 layers atmosphere with an emissivity of {epsilon_earth} ")
-ax22.set_xlabel("Temperature (K)")
-ax22.set_ylabel("Altitude (km)") """
+    ax.axvline(x=venus_nb_layers, color='r', linestyle='--')
+    ax.text(venus_nb_layers, plt.ylim()[0], f" x = {venus_nb_layers:.2f}", ha="left", va="bottom", color="r", fontsize=10)
+
+
