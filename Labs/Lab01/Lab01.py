@@ -72,7 +72,9 @@ def solve_N_layer(n_layers,epsilon,s0=1370.,alpha=0.3,debug=0):
                 A[i,j]=-2
             else:
                 A[i,j]=epsilon*(1-epsilon)**(abs(j-i)-1) # I figured out that using np.abs() make it much slower than using abs()
-    
+            if debug:
+                print(f'A[i={i},j={j}] = {A[i, j]}')
+
     #Then I change A[0,0] number to respect the real matrix, it should be -1 but because 
     #I multiplied the first equation by epsilon it becomes -epsilon
     A[0,0]=-epsilon 
@@ -156,6 +158,86 @@ def validate_model(detail):
     max_error=max(t_real2-t_code2)
     
     print(f'\n \tThe maximum difference in temperature between our model and the ideal one is {max_error} °C')
+
+def solve_N_layer_nuclear_winter(n_layers,epsilon,s0=1350.,debug=0):
+    '''
+    This code solves the N-layer atmosphere model (with a constant emissivity)
+    in case of a nuclear winter–the solar radiation is absorbed by the top layer of the atmosphere 
+    instead of being absorbed by the ground–by resolving the matrix equation AX=b.
+    The matrix equation is only a way to unite all the N+1 equations 
+    (energy balance for the N layers and the energy balance of Earth's surface)
+
+    Parameters:
+    -------------
+
+    n_layers: Integer
+        The number of layer of atmosphere in the model
+
+    s0: float, default 1370W/m2
+        The solar constant
+    
+    alpha: float, default to 0.3
+        The Earth albedo
+
+    epsilon: float
+        the emissivity of the layers (uniform in this model)
+
+    debug: bool, default to 0
+        When debug is set to 1, it prints out the matrix A and the array b
+
+    Returns:
+    ----------
+    t_array: vector of float
+        The temperature of Earth's surface in Celsius followed by 
+        the Temperature of each layer in Celsius
+
+    '''
+    # Create array of coefficients, an N+1xN+1 array:
+    A = np.zeros([n_layers+1, n_layers+1])
+    b = np.zeros(n_layers+1)
+
+    # Populate based on our model:
+    # the first equation is different from the other one, however I multiplied this equation by epsilon
+    # to have truly symmetrical matrix, this doesn't change anything in that case : b[0]=0*epsilon=0 
+    #And b[N]= solar flux, but because the first layer is opaque, non of the solar flux is reflected : alpha=0
+    b[n_layers]=-s0/4
+    
+    #We can now populate the matrix, to make it faster, I first populate it like the diagonal was full of -2,
+    for i in range(n_layers+1):
+        for j in range(n_layers+1):
+            if debug:
+                print(f'A[i={i},j={j}] = {A[i, j]}')
+            if i==j:
+                A[i,j]=-2
+            else:
+                A[i,j]=epsilon*(1-epsilon)**(abs(j-i)-1) # I figured out that using np.abs() make it much slower than using abs()
+    
+    #Then I change A[0,0] number to respect the real matrix, it should be -1 but because 
+    #I multiplied the first equation by epsilon it becomes -epsilon
+    A[0,0]=-epsilon 
+    
+    """
+    or : if i==j:
+            A[i,j]=-2+1*(j==0)
+        else:
+            A[i,j]=epsilon**(i>0)*(1-epsilon)**(np.abs(j-i)-1)
+    """
+
+    if debug:
+        print(A,b)
+    # Invert matrix:
+    Ainv = np.linalg.inv(A)
+    # Get solution:
+    fluxes = np.matmul(Ainv, b) # Note our use of matrix multiplication!
+    
+    #The earth is considered as a Black body so its emissivity is 1 
+    #and can be different from epsilon, so a different calculus is needed 
+    #to derive Earth Temperature from its radiation flux, than for the atmosphere layers
+    t0=(fluxes[0]/sigma)**0.25 
+    t_array=(fluxes/sigma/epsilon)**0.25
+    t_array[0]=t0
+
+    return t_array
 
 def question3a():
     """
@@ -262,4 +344,20 @@ def question4():
     ax.axvline(x=venus_nb_layers, color='r', linestyle='--')
     ax.text(venus_nb_layers, plt.ylim()[0], f" x = {venus_nb_layers:.2f}", ha="left", va="bottom", color="r", fontsize=10)
 
+def question5():
 
+    nb_layers=5
+    epsilon_nuclear_winter=0.5
+
+    altitudes=np.linspace(0,100,nb_layers+1)
+    t_earth_layers=solve_N_layer_nuclear_winter(nb_layers,epsilon_nuclear_winter)
+
+    print(f"The Earth's surface temperature would be {t_earth_layers[0]} K during a nuclear winter")
+    print(t_earth_layers)
+
+    #Plotting the Temperature within the Earth's atmosphere for the realistic number of layers
+    fig,ax=plt.subplots(1,1)
+    ax.plot(t_earth_layers,altitudes)
+    ax.set_title(f"Temperatures in a 5 layers atmosphere during a nuclear winter")
+    ax.set_xlabel("Temperature (K)")
+    ax.set_ylabel("Altitude (km)")
