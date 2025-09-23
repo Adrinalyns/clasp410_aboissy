@@ -159,7 +159,7 @@ def validate_model(detail):
     
     print(f'\n \tThe maximum difference in temperature between our model and the ideal one is {max_error} °C')
 
-def solve_N_layer_nuclear_winter(n_layers,epsilon,s0=1350.,debug=0):
+def solve_N_layer_nuclear_winter(n_layers,epsilon,alpha=1,s0=1350.,debug=0):
     '''
     This code solves the N-layer atmosphere model (with a constant emissivity)
     in case of a nuclear winter–the solar radiation is absorbed by the top layer of the atmosphere 
@@ -176,7 +176,7 @@ def solve_N_layer_nuclear_winter(n_layers,epsilon,s0=1350.,debug=0):
     s0: float, default 1370W/m2
         The solar constant
     
-    alpha: float, default to 0.3
+    alpha: float, default to 1
         The Earth albedo
 
     epsilon: float
@@ -200,7 +200,7 @@ def solve_N_layer_nuclear_winter(n_layers,epsilon,s0=1350.,debug=0):
     # the first equation is different from the other one, however I multiplied this equation by epsilon
     # to have truly symmetrical matrix, this doesn't change anything in that case : b[0]=0*epsilon=0 
     #And b[N]= solar flux, but because the first layer is opaque, non of the solar flux is reflected : alpha=0
-    b[n_layers]=-s0/4
+    b[n_layers]=-s0*(1-alpha)/4
     
     #We can now populate the matrix, to make it faster, I first populate it like the diagonal was full of -2,
     for i in range(n_layers+1):
@@ -362,13 +362,13 @@ def question5():
     in case of a nuclear winter (all the sun radiation is absorbed by the last layer of atmosphere).
     """
     nb_layers=5
-    epsilon_nuclear_winter=0.5
+    epsilon_nuclear_winter=0.7
 
     altitudes=np.linspace(0,100,nb_layers+1)
-    t_earth_layers=solve_N_layer_nuclear_winter(nb_layers,epsilon_nuclear_winter)
+    t_earth_layers=solve_N_layer_nuclear_winter(nb_layers,epsilon_nuclear_winter, alpha=0.4)
 
     print(f"The Earth's surface temperature would be {t_earth_layers[0]:.2f} K during a nuclear winter")
-
+    print(t_earth_layers)
 
     #Plotting the Temperature within the Earth's atmosphere for the realistic number of layers
     fig,ax=plt.subplots(1,1)
