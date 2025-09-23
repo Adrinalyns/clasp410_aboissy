@@ -376,4 +376,6 @@ def question5():
     ax.set_title(f"Temperatures in a 5 layers atmosphere during a nuclear winter")
     ax.set_xlabel("Temperature (K)")
     ax.set_ylabel("Altitude (km)")
+    T_earth=t_earth_layers[0]
+    ax.text(T_earth,0,f'{T_earth:.0f}',color='red',va='top',ha='center')
     return None
