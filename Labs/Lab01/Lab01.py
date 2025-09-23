@@ -159,7 +159,7 @@ def validate_model(detail):
     
     print(f'\n \tThe maximum difference in temperature between our model and the ideal one is {max_error} °C')
 
-def solve_N_layer_nuclear_winter(n_layers,epsilon,alpha=1,s0=1350.,debug=0):
+def solve_N_layer_nuclear_winter(n_layers,epsilon,alpha,s0=1350.,debug=0):
     '''
     This code solves the N-layer atmosphere model (with a constant emissivity)
     in case of a nuclear winter–the solar radiation is absorbed by the top layer of the atmosphere 
@@ -255,7 +255,7 @@ def question3a():
     #Let's find the emissivity of the single-layer atmosphere to have a surface temperature of t_earth_surface=288K
     idx = np.argmin(np.abs(t_earth_array - 288))
     earth_epsilon = epsi_array[idx]
-    print(f"To match Earth's surface temperature with a single layer, the emissivity should be {earth_epsilon}")
+    print(f"To match Earth's surface temperature with a single layer, the emissivity should be {earth_epsilon:.2f}")
 
     #plotting the figure for Q3)a)
     fig,ax=plt.subplots(1,1)
@@ -288,7 +288,7 @@ def question3b():
     nb_layer_array=np.arange(1,11,1)
     t_earth_array2=np.array([solve_N_layer(nb_layer,epsilon_earth,s0=1350)[0] for nb_layer in nb_layer_array])
 
-    print(t_earth_array2[0], t_earth_array2[-1])
+    #print(t_earth_array2[0], t_earth_array2[-1])
 
     #Let's find the number of layers for an atmosphere whose emissivity is 0.255 to have a surface temperature of t_earth_surface=288K
     idx = np.argmin(np.abs(t_earth_array2 - 288))
@@ -307,7 +307,7 @@ def question3b():
     ax21.set_ylabel("Temperature (K)")
 
     ax21.axhline(y=t_earth_surface, color='r', linestyle='--')
-    ax21.text(plt.xlim()[0], t_earth_surface, f" y = {t_earth_surface:.0f} K", ha="left", va="bottom", color="r", fontsize=10)
+    ax21.text(plt.xlim()[0], t_earth_surface, f"{t_earth_surface:.0f} K", ha="left", va="bottom", color="r", fontsize=10)
 
     ax21.axvline(x=earth_nb_layers, color='r', linestyle='--')
     ax21.text(earth_nb_layers, plt.ylim()[0], f" x = {earth_nb_layers:.2f}", ha="left", va="bottom", color="r", fontsize=10)
@@ -334,10 +334,12 @@ def question4():
     nb_layer_array=np.arange(1,100,1)
     t_venus_array=np.array([solve_N_layer(nb_layer,epsilon_venus,s0=s0_venus, alpha=albedo_venus)[0] for nb_layer in nb_layer_array])
 
+    #print(t_venus_array[0],t_venus_array[-1])
+
     #Let's find the number of layers for an atmosphere whose emissivity is 0.71 to have a surface temperature of t_venus_surface=700K
     idx = np.argmin(np.abs(t_venus_array - t_venus))
     venus_nb_layers = nb_layer_array[idx]
-    print(f"To match Venus' surface temperature with an emissivity of {epsilon_venus}, earth should have {venus_nb_layers} layers")
+    print(f"To match Venus' surface temperature with an emissivity of {epsilon_venus}, Venus should have {venus_nb_layers} layers")
 
 
     #Plotting the Temperature od Venus' surface wrt the number of layers 
@@ -363,12 +365,13 @@ def question5():
     """
     nb_layers=5
     epsilon_nuclear_winter=0.7
+    alpha_layer=0.4
 
     altitudes=np.linspace(0,100,nb_layers+1)
-    t_earth_layers=solve_N_layer_nuclear_winter(nb_layers,epsilon_nuclear_winter, alpha=0.4)
+    t_earth_layers=solve_N_layer_nuclear_winter(nb_layers,epsilon_nuclear_winter, alpha_layer)
 
     print(f"The Earth's surface temperature would be {t_earth_layers[0]:.2f} K during a nuclear winter")
-    print(t_earth_layers)
+    #print(t_earth_layers)
 
     #Plotting the Temperature within the Earth's atmosphere for the realistic number of layers
     fig,ax=plt.subplots(1,1)
