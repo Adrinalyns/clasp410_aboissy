@@ -5,11 +5,13 @@ It plots all the results used in the report
 
 TO REPRODUCE THE VALUES AND PLOTS IN MY REPORT, DO THIS:
 
-XXXXXXXXX
-X
-X
-X
-X
+- validate_model(0) : to validate the N layer model quickly
+- validate_model(1) : to validate the N layer model in detail (use it to debug the model)
+
+- question3a() : to plot the graph for the first part of question 3) : temperature wrt emissivity
+- question3b() : to plot the graph for the second part of question 3): temperature wrt number of layers
+- question4()  : to plot the graph for question 4): venus number layer
+- question5()  : to plot the graph for question 5): nuclear winter
 
 
 '''
@@ -311,7 +313,7 @@ def question3b():
     ax21.text(earth_nb_layers, plt.ylim()[0], f" x = {earth_nb_layers:.2f}", ha="left", va="bottom", color="r", fontsize=10)
 
     ax22.plot(t_earth_layers,altitudes)
-    ax22.set_title(f"Temperatures in a 4 layers atmosphere with an emissivity of {epsilon_earth} ")
+    ax22.set_title(f"Temperatures in a {earth_nb_layers} layers atmosphere with an emissivity of {epsilon_earth} ")
     ax22.set_xlabel("Temperature (K)")
     ax22.set_ylabel("Altitude (km)")
     return None
