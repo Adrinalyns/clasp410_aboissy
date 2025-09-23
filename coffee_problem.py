@@ -74,7 +74,41 @@ def verify_code():
     print("Numerical solution is: ",t_code)
     print("The difference is:", t_real-t_code)
 
+def euler_coffee(dt=.25,k=1/30,T_env=20.0, T_init=90., t_final=300.):
+    '''
+    Solve the cooling equation with Euler method
 
+    Parameters
+    -----------
+    dt: float, default to 0.25
+        the step time for resolving the equation 
+
+    T_init: floating point, default to 90
+        Initial temperature in celsius
+        
+    T_env: floating point, default to 20
+        Initial temperature in celsius
+
+    k: floating point, default 1/300.
+        the heat transfer coefficient
+    
+    t_final: floating point, default to 300
+        number of seconds of the simulation
+
+    Returns
+    ----------
+    t_coffee: Numpy array
+        Temperature corresponding to time t
+    
+    '''
+    time=np;arrange(0,t_final,dt)
+    temp=np.zeros(time.size)
+    temp[0]=T_init
+
+    #Solve
+    for i in range():
+        temp[i+1]=temp[i]-dt*k*(temp[i]-T_env)
+    
 
 #Solve the actual problem using the functions declared above
 
