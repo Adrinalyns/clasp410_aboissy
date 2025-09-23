@@ -23,7 +23,7 @@ plt.style.use('seaborn-darkgrid')
 sigma=5.6703e-8 # W/m2/K-4
 t_earth_surface=288. # K
 
-def solve_N_layer(n_layers,epsilon,s0=1370.,alpha=0.3,debug=0):
+def solve_N_layer(n_layers,epsilon,s0=1370.,alpha=0.33,debug=0):
     '''
     This code solves the N-layer atmosphere model (with a constant emissivity)
     by resolving the matrix equation AX=b.
@@ -39,7 +39,7 @@ def solve_N_layer(n_layers,epsilon,s0=1370.,alpha=0.3,debug=0):
     s0: float, default 1370W/m2
         The solar constant
     
-    alpha: float, default to 0.3
+    alpha: float, default to 0.33
         The Earth albedo
 
     epsilon: float
@@ -72,9 +72,7 @@ def solve_N_layer(n_layers,epsilon,s0=1370.,alpha=0.3,debug=0):
                 A[i,j]=-2
             else:
                 A[i,j]=epsilon*(1-epsilon)**(abs(j-i)-1) # I figured out that using np.abs() make it much slower than using abs()
-            if debug:
-                print(f'A[i={i},j={j}] = {A[i, j]}')
-
+    
     #Then I change A[0,0] number to respect the real matrix, it should be -1 but because 
     #I multiplied the first equation by epsilon it becomes -epsilon
     A[0,0]=-epsilon 
@@ -126,7 +124,7 @@ def validate_model(detail):
     '''
 
     t_real1=[381.3,360.6,335.6,303.3,255.0]
-    t_code1=solve_N_layer(4,1)
+    t_code1=solve_N_layer(4,1,alpha=0.3)
 
     print(f"Validation 1 : n_layers=4, epsilon=1, alpha=0.3, s0=1370 W/m2 \n")
 
@@ -241,14 +239,16 @@ def solve_N_layer_nuclear_winter(n_layers,epsilon,s0=1350.,debug=0):
 
 def question3a():
     """
-    This function calculates and plots the Temperature of Earth surface corresponding to a single-layer atmosphere 
-    with an emissivity varying from 0 to 1, and plots it 
-    Then it finds the emissivity that gives a surface temperature corresponding to the real one, and plots it
+    This function answers the first part of question 3) by plotting the Earth's surface temperature in a single-layer atmosphere
+    for emissivity form 0.01 to 0.99
+    It also find the point on the curve that correspond to the current earth temperature and plot it.
     """
 
-    #calculating 
+    #Calculating the surface temperature when varying the emissivity
     epsi_array=np.arange(0.01,1,0.01)
     t_earth_array=np.array([solve_N_layer(1,epsilon,s0=1350)[0] for epsilon in epsi_array])
+
+    #print(t_earth_array[0], t_earth_array[-1])
 
     #Let's find the emissivity of the single-layer atmosphere to have a surface temperature of t_earth_surface=288K
     idx = np.argmin(np.abs(t_earth_array - 288))
@@ -270,19 +270,23 @@ def question3a():
     ax.set_ylabel("Temperature of the atmosphere (K)")
     ax.set_title("Evolution of Earth's surface temperature wrt the emissivity of a single layer atmosphere")
     ax.legend()
+    return None
 
 def question3b():
-
-    #plotting the figure for Q3)b)
+    """
+    This function answers the second part of question 3) by plotting the Earth's surface temperature in an 
+    atmosphere with a number of layers from 1 to 10.
+    It also find the point on the curve that correspond to the current earth temperature and plot it.
+    Then it plots the temperature with ratio to the altitude in this particular atmosphere.
+    """
 
     epsilon_earth=0.255
 
-    #Generating the surface temperatures for each nb of layer
+    #Calculating the surface temperature when varying the number of layers
     nb_layer_array=np.arange(1,11,1)
     t_earth_array2=np.array([solve_N_layer(nb_layer,epsilon_earth,s0=1350)[0] for nb_layer in nb_layer_array])
 
-
-
+    print(t_earth_array2[0], t_earth_array2[-1])
 
     #Let's find the number of layers for an atmosphere whose emissivity is 0.255 to have a surface temperature of t_earth_surface=288K
     idx = np.argmin(np.abs(t_earth_array2 - 288))
@@ -293,27 +297,32 @@ def question3b():
     t_earth_layers=solve_N_layer(earth_nb_layers,epsilon_earth,s0=1350)
     altitudes=np.linspace(0,100,earth_nb_layers+1)
 
-    #Plotting the Temperature od Earth'S surface wrt the number of layers
+    #plotting the figures
     fig2,(ax21,ax22)=plt.subplots(2,1)
     ax21.plot(nb_layer_array,t_earth_array2)
     ax21.set_title("Temperature of Earth's surface wrt the number of layers")
     ax21.set_xlabel("Number of layers")
     ax21.set_ylabel("Temperature (K)")
 
-    #Plotting the optimal number of layer to match Earth's surface temperature
     ax21.axhline(y=t_earth_surface, color='r', linestyle='--')
     ax21.text(plt.xlim()[0], t_earth_surface, f" y = {t_earth_surface:.0f} K", ha="left", va="bottom", color="r", fontsize=10)
 
     ax21.axvline(x=earth_nb_layers, color='r', linestyle='--')
     ax21.text(earth_nb_layers, plt.ylim()[0], f" x = {earth_nb_layers:.2f}", ha="left", va="bottom", color="r", fontsize=10)
 
-    #Plotting the Temperature within the Earth's atmosphere for the realistic number of layers
     ax22.plot(t_earth_layers,altitudes)
     ax22.set_title(f"Temperatures in a 4 layers atmosphere with an emissivity of {epsilon_earth} ")
     ax22.set_xlabel("Temperature (K)")
     ax22.set_ylabel("Altitude (km)")
+    return None
 
 def question4():
+    """
+    This function answers question 4) by plotting the Venuus' surface temperature in an 
+    atmosphere with a number of layers from 1 to 20.
+    It also find the point on the curve that correspond to the current Venus' surface temperature and plot it.
+    """
+
     epsilon_venus=1 # each layer absorbs all the long wave energy
     t_venus=700 # K
     s0_venus=2600 # W/m2
@@ -343,17 +352,21 @@ def question4():
 
     ax.axvline(x=venus_nb_layers, color='r', linestyle='--')
     ax.text(venus_nb_layers, plt.ylim()[0], f" x = {venus_nb_layers:.2f}", ha="left", va="bottom", color="r", fontsize=10)
+    return None 
 
 def question5():
-
+    """
+    This function answers  question 5) by plotting the Earth's surface temperature within the atmosphere 
+    in case of a nuclear winter (all the sun radiation is absorbed by the last layer of atmosphere).
+    """
     nb_layers=5
     epsilon_nuclear_winter=0.5
 
     altitudes=np.linspace(0,100,nb_layers+1)
     t_earth_layers=solve_N_layer_nuclear_winter(nb_layers,epsilon_nuclear_winter)
 
-    print(f"The Earth's surface temperature would be {t_earth_layers[0]} K during a nuclear winter")
-    print(t_earth_layers)
+    print(f"The Earth's surface temperature would be {t_earth_layers[0]:.2f} K during a nuclear winter")
+
 
     #Plotting the Temperature within the Earth's atmosphere for the realistic number of layers
     fig,ax=plt.subplots(1,1)
@@ -361,3 +374,4 @@ def question5():
     ax.set_title(f"Temperatures in a 5 layers atmosphere during a nuclear winter")
     ax.set_xlabel("Temperature (K)")
     ax.set_ylabel("Altitude (km)")
+    return None
