@@ -117,7 +117,7 @@ def euler_solve(func, N1_init, N2_init, dt, t_final=100.0, **kwargs):
     N2[0]=N2_init
 
     for i in range(1, time.size):
-        dN1, dN2 = func(i, [N1[i-1], N2[i-1]], **kwargs )
+        dN1, dN2 = func(time[i-1], [N1[i-1], N2[i-1]], **kwargs )
         N1[i]= N1[i-1] + dt*dN1
         N2[i]= N2[i-1] + dt*dN2
 
@@ -139,7 +139,7 @@ def solve_rk8(func, N1_init=.5, N2_init=.5, dt=10, t_final=100.0, a=1, b=2, c=1,
         Initial conditions for `N1` and `N2`, ranging from (0,1]
 
     dt : float, default=10
-        Largest timestep allowed in years.
+        Largest time step allowed in years.
 
     t_final : float, default=100
         Integrate until this value is reached, in years.
@@ -165,7 +165,7 @@ def solve_rk8(func, N1_init=.5, N2_init=.5, dt=10, t_final=100.0, a=1, b=2, c=1,
     return time, N1, N2
 
 
-def question1():
+def validate_model():
     a=1
     b=2
     c=1
@@ -180,20 +180,123 @@ def question1():
     dt=1
         #Euler method
 
-    time,N1,N2=euler_solve(dNdt_comp, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final)
+    time_comp,N1_comp,N2_comp=euler_solve(dNdt_comp, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
+    
+    ax1.plot(time_comp,N1_comp,label=f'N1 with Euler')
+    ax1.plot(time_comp,N2_comp,label=f'N2 with Euler')
+    
+    #RK8 method
 
-    ax1.plot(time,N1)
-    ax1.plot(time,N2)
+    time_rk8_comp,N1_rk8_comp,N2_rk8_comp=solve_rk8(dNdt_comp, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
+
+    ax1.plot(time_rk8_comp,N1_rk8_comp, label=f'N1 with RK8',linestyle='--')
+    ax1.plot(time_rk8_comp,N2_rk8_comp, label=f'N2 with RK8',linestyle='--')
+    ax1.set_title("Lokta Volterra Competition model")
+    ax1.set_xlabel("Time (years)")
+    ax1.set_ylabel(r'$\frac{Population}{carrying-cap}$')
+    ax1.legend()
 
     #prey-predator model
     dt=0.05
         #Euler method
 
-    time,N1,N2=euler_solve(dNdt_predator_prey, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final)
+    time_PP,N1_PP,N2_PP=euler_solve(dNdt_predator_prey, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
 
-    fig,ax=plt.subplots(1,1)
+    ax2.plot(time_PP,N1_PP,label=f'N1 (Prey) with Euler')
+    ax2.plot(time_PP,N2_PP,label=f'N2 (Predator) with Euler')
 
-    ax2.plot(time,N1)
-    ax2.plot(time,N2)
+        #RK8 method
+
+    time_rk8_PP,N1_rk8_PP,N2_rk8_PP=solve_rk8(dNdt_predator_prey, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
+
+    ax2.plot(time_rk8_PP,N1_rk8_PP,label=f'N1 (Prey) with RK8',linestyle='--')
+    ax2.plot(time_rk8_PP,N2_rk8_PP, label=f'N2 (Predator) with RK8',linestyle='--')
+    ax2.set_title("Lokta Volterra Predator-Prey model")
+    ax2.set_xlabel("Time (years)")
+    ax2.set_ylabel(r'$\frac{Population}{carrying-cap}$')
+    ax2.legend()
     
+def question1():
+    a=1
+    b=2
+    c=1
+    d=3
+    N1_init=0.3
+    N2_init=0.6
+    t_final=100
+
+    
+    #competition model
+    dt_array=[0.05,0.5,1,2]
+    for dt in dt_array:
+        
+            #Euler method
+        time_comp,N1_comp,N2_comp=euler_solve(dNdt_comp, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
+            #RK8 method
+        time_rk8_comp,N1_rk8_comp,N2_rk8_comp=solve_rk8(dNdt_comp, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
+
+        print(f'For dt = {dt} years, the Euler solution took {time_comp.size} iterations.')
+        print(f'For dt = {dt} years, the RK8 solution took {time_rk8_comp.size} iterations.')
+
+        plt.figure()    #create a new figure for next plot
+
+        plt.plot(time_comp,N1_comp,label=f'N1 with Euler')
+        plt.plot(time_comp,N2_comp,label=f'N2 with Euler')
+
+        plt.plot(time_rk8_comp,N1_rk8_comp, label=f'N1 with RK8',linestyle='--')
+        plt.plot(time_rk8_comp,N2_rk8_comp, label=f'N2 with RK8',linestyle='--')
+
+        plt.title(f"Lokta Volterra Competition model dt = {dt} year")
+        plt.xlabel("Time (years)")
+        plt.ylabel(r'$\frac{Population}{carrying-cap}$')
+        plt.legend()
+        
+    
+    #prey-predator model
+
+    dt_array=[0.001,0.01,0.05,0.09]
+    for dt in dt_array:
+
+            #Euler method
+        time_PP,N1_PP,N2_PP=euler_solve(dNdt_predator_prey, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
+            
+            #RK8 method
+        time_rk8_PP,N1_rk8_PP,N2_rk8_PP=solve_rk8(dNdt_predator_prey, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
+
+        plt.figure() #create a new figure for next plot
+
+        plt.plot(time_PP,N1_PP,label=f'N1 (Prey) with Euler')
+        plt.plot(time_PP,N2_PP,label=f'N2 (Predator) with Euler')
+            
+        plt.plot(time_rk8_PP,N1_rk8_PP,label=f'N1 (Prey) with RK8',linestyle='--')
+        plt.plot(time_rk8_PP,N2_rk8_PP, label=f'N2 (Predator) with RK8',linestyle='--')
+
+        plt.title(f"Lokta Volterra Predator-Prey model dt = {dt} year")
+        plt.xlabel("Time (years)")
+        plt.ylabel(r'$\frac{Population}{carrying-cap}$')
+        plt.legend()
+    
+
+a=1
+b=2
+c=1
+d=5
+N1_init=0.3
+N2_init=0.5
+dt=1
+
+t_final=100
+
+
+time_rk8_comp,N1_rk8_comp,N2_rk8_comp=solve_rk8(dNdt_comp, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
+plt.figure()    #create a new figure for next plot
+
+
+plt.plot(time_rk8_comp,N1_rk8_comp, label=f'N1 with RK8',linestyle='--')
+plt.plot(time_rk8_comp,N2_rk8_comp, label=f'N2 with RK8',linestyle='--')
+plt.title(f"Lokta Volterra Competition model dt = {dt} year")
+plt.xlabel("Time (years)")
+plt.ylabel(r'$\frac{Population}{carrying-cap}$')
+plt.legend()
+
     
