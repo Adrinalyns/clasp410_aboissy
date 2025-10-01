@@ -334,21 +334,31 @@ a=1
 b=2
 c=1
 d=3
-N1_init=0.3
-N2_init=0.6
+N1_init=0.5
+N2_init=0.5
 t_final=100
-#Calculating each equilibrium
-time,N1,N2=solve_rk8(dNdt_predator_prey, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
 
-#Plotting phase diagram
-plt.figure()
-plt.plot(N1,N2)
+for a in range(1,4):
+    for b in range(1,4):
+        for c in range(1,4):
+            for d in range(1,4):
 
-#Plotting each equilibrium
-plt.figure()    #create a new figure for next plot
-plt.plot(time,N1, label=f'N1 with RK8',linestyle='--')
-plt.plot(time,N2, label=f'N2 with RK8',linestyle='--')
-plt.title(f"Lokta Volterra Competition model\n dt={dt} year a={a}, b={b}, c={c}, d={d}, N1(0)={N1_init}, N2(0)={N2_init}")
-plt.xlabel("Time (years)")
-plt.ylabel(r'$\frac{Population}{carrying-cap}$')
-plt.legend()
+                #Calculating each equilibrium
+                time,N1,N2=solve_rk8(dNdt_predator_prey, N1_init=N1_init/10, N2_init=N2_init/10, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
+                #Plotting phase diagram
+                #plt.figure()
+                plt.plot(N1,N2,label=f'a={a}, b={b}, c={c}, d={d}, N1(0)={N1_init}, N2(0)={N2_init}')
+                plt.title(f'Phase diagram with \n dt={dt} year a={a}, b={b}, c={c}, d={d}, N1(0)={N1_init}, N2(0)={N2_init}')
+                plt.xlabel(r'N1-Prey ($\frac{Population}{carrying-cap}$)')
+                plt.ylabel(r'N2-Predators ($\frac{Population}{carrying-cap}$)')
+                plt.legend()
+        """
+        #Plotting each equilibrium
+        plt.figure()    #create a new figure for next plot
+        plt.plot(time,N1, label=f'N1 with RK8',linestyle='--')
+        plt.plot(time,N2, label=f'N2 with RK8',linestyle='--')
+        plt.title(f"Lokta Volterra Competition model\n dt={dt} year a={a}, b={b}, c={c}, d={d}, N1(0)={N1_init}, N2(0)={N2_init}")
+        plt.xlabel("Time (years)")
+        plt.ylabel(r'$\frac{Population}{carrying-cap}$')
+        plt.legend()
+        """
