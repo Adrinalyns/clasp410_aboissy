@@ -411,16 +411,19 @@ def Q3_N2(n,N2_min,N2_max):
         """
    
 
-def Q3(n,i):
+def Q3(i,z_min,z_max,n):
     dt=0.1
-    parameters=[1,2,1,3]
-    name=['a','b','c','d']
-    index=[0,1,2,3]
+    parameters=[0.5,0.5,1,2,1,3]
+    name=['N1','N2','a','b','c','d']
+    index=[0,1,2,3,4,5]
     index.pop(i)
     N1_init=0.5
     N2_init=0.5
-    text_parameters=f'N1(0)={N1_init} N2(0)={N2_init} dt={dt} year, {name[index[0]]}={parameters[index[0]]}, {name[index[1]]}={parameters[index[1]]}, {name[index[2]]}={parameters[index[2]]}'
+    text_parameters=f'dt={dt} year, {name[index[0]]}={parameters[index[0]]}, {name[index[1]]}={parameters[index[1]]}, {name[index[2]]}={parameters[index[2]]}, {name[index[3]]}={parameters[index[3]]}, {name[index[4]]}={parameters[index[4]]}'
     t_final=100
+
+    parameters[i]=z_min
+    dz=(z_max-z_min)/(n-1)
 
     fig,ax1=plt.subplots(1,1)
     fig2,(ax2,ax3)=plt.subplots(2,1)
@@ -428,17 +431,18 @@ def Q3(n,i):
     cmap = plt.cm.get_cmap("autumn", n)
 
     # Figure 1: varying N2
-    for k in range(1,n):
-        parameters[i]=k/2
-        a=parameters[0]
-        b=parameters[1]
-        c=parameters[2]
-        d=parameters[3]
+    for k in range(n):
+        N1_init=parameters[0]
+        N2_init=parameters[1]
+        a=parameters[2]
+        b=parameters[3]
+        c=parameters[4]
+        d=parameters[5]
         #Calculating each equilibrium
         time,N1,N2=solve_rk8(dNdt_predator_prey, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
 
         #Plotting phase diagram
-        ax1.plot(N1,N2,color=cmap(n-k),label=f'{name[i]}={parameters[i]}')
+        ax1.plot(N1,N2,color=cmap(n-1-k),label=f'{name[i]}={parameters[i]:.2f}')
         ax1.set_title(f'Phase diagram with \n {text_parameters}')
         ax1.set_xlabel(r'N1-Prey ($\frac{Population}{carrying-cap}$)')
         ax1.set_ylabel(r'N2-Predators ($\frac{Population}{carrying-cap}$)')
@@ -446,19 +450,20 @@ def Q3(n,i):
         
         fig2.suptitle(text_parameters)
         #Plotting the evolution of the prey population for all values of d
-        ax2.plot(time,N1,color=cmap(n-k),label=f'{name[i]}={parameters[i]}',linestyle='--')
+        ax2.plot(time,N1,color=cmap(n-1-k),label=f'{name[i]}={parameters[i]:.2f}',linestyle='--')
         ax2.set_title(f"Prey population behavior")
         ax2.set_xlabel("Time (years)")
         ax2.set_ylabel(r'$\frac{Population}{carrying-cap}$')
         ax2.legend()
 
         #Plotting the evolution of the predator population for all values of d
-        ax3.plot(time,N2,color=cmap(n-k),label=f'{name[i]}={parameters[i]}',linestyle='--')
+        ax3.plot(time,N2,color=cmap(n-1-k),label=f'{name[i]}={parameters[i]:.2f}',linestyle='--')
         ax3.set_title(f"Predator population behavior")
         ax3.set_xlabel("Time (years)")
         ax3.set_ylabel(r'$\frac{Population}{carrying-cap}$')
         ax3.legend()
 
+        parameters[i]+=dz
 
 def question3():
     #Calculating the solution for the basis case
@@ -500,12 +505,12 @@ def question3():
     plt.legend()
     plt.show()
     
-    Q3_N1(9,0.1,0.9)
-    Q3_N2(5,0.2,0.8)
-    Q3(8,0)
-    Q3(8,1)
-    Q3(8,2)
-    Q3(8,3)
+    #Q3(0,0.1,0.9,9)
+    #Q3(1,0.2,0.8,5)
+    Q3(2,0.2,1.8,5)
+    Q3(3,0.5,3.5,7)
+    #Q3(4,0.5,3.5,7)
+    #Q3(5,0.5,3.5,7)
     
 """
 dt=0.1
