@@ -18,7 +18,6 @@ To obtain the plots for all different questions:
 
 '''
 
-
 import numpy as np
 import matplotlib.pyplot as plt
 plt.style.use('seaborn-darkgrid')
@@ -243,9 +242,37 @@ def question1():
     N2_init=0.6
     t_final=100
 
+    #prey-predator model
+
+    dt_array=[0.09,0.05,0.01,0.001]
+    for dt in dt_array:
+
+        #Calculating the results for the 2 Methods
+
+            #Euler method
+        time_PP,N1_PP,N2_PP=euler_solve(dNdt_predator_prey, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
+            
+            #RK8 method
+        time_rk8_PP,N1_rk8_PP,N2_rk8_PP=solve_rk8(dNdt_predator_prey, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
+
+        #Plotting figures
+
+        plt.figure() #create a new figure for next plot
+
+        plt.plot(time_PP,N1_PP,label=f'N1 (Prey) with Euler')
+        plt.plot(time_PP,N2_PP,label=f'N2 (Predator) with Euler')
+            
+        plt.plot(time_rk8_PP,N1_rk8_PP,label=f'N1 (Prey) with RK8',linestyle='--')
+        plt.plot(time_rk8_PP,N2_rk8_PP, label=f'N2 (Predator) with RK8',linestyle='--')
+
+        plt.title(f"Lokta Volterra Predator-Prey model dt = {dt} year")
+        plt.xlabel("Time (years)")
+        plt.ylabel(r'$\frac{Population}{carrying-cap}$')
+        plt.legend()
+
     
     #competition model
-    dt_array=[0.05,0.5,1,2]
+    dt_array=[2,1,0.5,0.05]
     for dt in dt_array:
         
         #Calculating the results for the 2 Methods
@@ -273,34 +300,6 @@ def question1():
         plt.legend()
         
     
-    #prey-predator model
-
-    dt_array=[0.001,0.01,0.05,0.09]
-    for dt in dt_array:
-
-        #Calculating the results for the 2 Methods
-
-            #Euler method
-        time_PP,N1_PP,N2_PP=euler_solve(dNdt_predator_prey, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
-            
-            #RK8 method
-        time_rk8_PP,N1_rk8_PP,N2_rk8_PP=solve_rk8(dNdt_predator_prey, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
-
-        #Plotting figures
-
-        plt.figure() #create a new figure for next plot
-
-        plt.plot(time_PP,N1_PP,label=f'N1 (Prey) with Euler')
-        plt.plot(time_PP,N2_PP,label=f'N2 (Predator) with Euler')
-            
-        plt.plot(time_rk8_PP,N1_rk8_PP,label=f'N1 (Prey) with RK8',linestyle='--')
-        plt.plot(time_rk8_PP,N2_rk8_PP, label=f'N2 (Predator) with RK8',linestyle='--')
-
-        plt.title(f"Lokta Volterra Predator-Prey model dt = {dt} year")
-        plt.xlabel("Time (years)")
-        plt.ylabel(r'$\frac{Population}{carrying-cap}$')
-        plt.legend()
-    
 def question2():
     """
     This function plots all the equilibrium states I have found. 
@@ -314,9 +313,9 @@ def question2():
     #this array contains every equilibrium state that I found.
     # each equilibrium is represented by an array containing the values of:
     # [a,b,c,d,N1_init,N2_init]
-    equilibriums=[[1,1,1,1,0.2,0.8],[1,1,1,1,0.8,0.8],[1,1,1,1,0.2,0.2],[1,1,1,1,0.2,0.5],[1,1,1,1,0.8,0.5],[1,2,1,5,0.15,0.6],[1,2,1,7,0.1,0.6],[1,3,1,2,0.6,0.3],[1,2,1,3,0.3,0.6]]
+    equilibriums=[[1,2,1,3,0.3,0.6],[1,3,1,2,0.6,0.3],[1,2,1,5,0.15,0.6],[1,2,1,7,0.1,0.6],[1,1,1,1,0.2,0.8],[1,1,1,1,0.8,0.8],[1,1,1,1,0.2,0.2],[1,1,1,1,0.2,0.5],[1,1,1,1,0.8,0.5]]
 
-    for equilibrium in equilibriums:
+    for equilibrium in equilibriums[::-1]:
         #Settings for each equilibrium
         a=equilibrium[0]
         b=equilibrium[1]
@@ -336,145 +335,142 @@ def question2():
         plt.xlabel("Time (years)")
         plt.ylabel(r'$\frac{Population}{carrying-cap}$')
         plt.legend()
+ 
 
-def Q3_N1(n,N1_min,N1_max):
+def Q3(i,z_min,z_max,n,time_serie=0,def_parameters=[0.5,0.5,1,2,1,3]):
+    """
+    This function plots the phase diagram and time evolution of populations, 
+    obtained with the Lokta-Volterra Predator-Prey equation,
+    when changing a single parameters. 
+    
+    There are 6 parameters for this equation that are 
+        N1_init, N2_init, a, b, c, d
+    nb: 0        1        2  3  4  5
+
+    You can chose, which parameter you want to change, from which value
+    to which value, how many steps you want and if you want to plot only the 
+    phase diagram or also the time series
+
+    Parameters:
+    ------------
+    i: int between 0 and 5
+        the number associated with the parameter that is changing
+    z_min: float
+        the minimum value the chosen parameter will be
+    z_max: float
+        the max value the chosen parameter will be
+    n: int
+        the number of step you want (the number of phase diagram curves you want)
+    time_serie: boolean, default to 0
+        If you only want the phase diagrams it should be 0, 
+        If you want both the phase diagrams and the time series it should be 1
+    def_parameters: list/array, default to [0.5,0.5,1,2,1,3]
+        the initial conditions and parameters of the equation, 
+        in the same order as described before
+
+    Returns:
+    --------
+    None, only plots are being made
+    """
+
+
     dt=0.1
-    a=1
-    b=2
-    c=1
-    d=3
-    N1_init=N1_min
-    N2_init=0.5
     t_final=100
-    dN=(N1_max-N1_min)/(n-1)
 
-    cmap = plt.cm.get_cmap("autumn", n)
-
-    fig,ax=plt.subplots(1,1)
-    # Figure 1: varying N1
-    for k in range(n):
-        #Calculating each equilibrium
-        time,N1,N2=solve_rk8(dNdt_predator_prey, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
-
-        #Plotting phase diagram
-        ax.plot(N1,N2,color=cmap(n-1-k),label=f'N1(0)={N1_init:.2f}')
-        ax.set_title(f'Phase diagram with \n N2(0)={N2_init} dt={dt} year a={a}, b={b}, c={c}, d={d}')
-        ax.set_xlabel(r'N1-Prey ($\frac{Population}{carrying-cap}$)')
-        ax.set_ylabel(r'N2-Predators ($\frac{Population}{carrying-cap}$)')
-        ax.legend()
-
-        N1_init+=dN
-        """
-        plt.figure()    #create a new figure for next plot
-        plt.plot(time,N1, label=f'N1 with RK8',linestyle='--')
-        plt.plot(time,N2, label=f'N2 with RK8',linestyle='--')
-        plt.title(f"Lokta Volterra Competition model\n dt={dt} year a={a}, b={b}, c={c}, d={d}, N1(0)={N1_init}, N2(0)={N2_init}")
-        plt.xlabel("Time (years)")
-        plt.ylabel(r'$\frac{Population}{carrying-cap}$')
-        plt.legend()
-        """
-
-def Q3_N2(n,N2_min,N2_max):
-    dt=0.1
-    a=1
-    b=2
-    c=1
-    d=3
-    N1_init=0.5
-    N2_init=N2_min
-    t_final=100
-    dN=(N2_max-N2_min)/(n-1)
-
-    cmap = plt.cm.get_cmap("autumn", n)
-
-    fig,ax=plt.subplots(1,1)
-    # Figure 1: varying N2
-    for k in range(n):
-        #Calculating each equilibrium
-        time,N1,N2=solve_rk8(dNdt_predator_prey, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
-
-        #Plotting phase diagram
-        ax.plot(N1,N2,color=cmap(n-1-k),label=f'N2(0)={N2_init:.2f}')
-        ax.set_title(f'Phase diagram with \n N1(0)={N1_init} dt={dt} year a={a}, b={b}, c={c}, d={d}')
-        ax.set_xlabel(r'N1-Prey ($\frac{Population}{carrying-cap}$)')
-        ax.set_ylabel(r'N2-Predators ($\frac{Population}{carrying-cap}$)')
-        ax.legend()
-        N2_init+=dN
-        """
-        plt.figure()    #create a new figure for next plot
-        plt.plot(time,N1, label=f'N1 with RK8',linestyle='--')
-        plt.plot(time,N2, label=f'N2 with RK8',linestyle='--')
-        plt.title(f"Lokta Volterra Competition model\n dt={dt} year a={a}, b={b}, c={c}, d={d}, N1(0)={N1_init}, N2(0)={N2_init}")
-        plt.xlabel("Time (years)")
-        plt.ylabel(r'$\frac{Population}{carrying-cap}$')
-        plt.legend()
-        """
-   
-
-def Q3(i,z_min,z_max,n):
-    dt=0.1
-    parameters=[0.5,0.5,1,2,1,3]
+    parameters=def_parameters.copy()
     name=['N1','N2','a','b','c','d']
     index=[0,1,2,3,4,5]
     index.pop(i)
-    N1_init=0.5
-    N2_init=0.5
+
     text_parameters=f'dt={dt} year, {name[index[0]]}={parameters[index[0]]}, {name[index[1]]}={parameters[index[1]]}, {name[index[2]]}={parameters[index[2]]}, {name[index[3]]}={parameters[index[3]]}, {name[index[4]]}={parameters[index[4]]}'
-    t_final=100
 
     parameters[i]=z_min
     dz=(z_max-z_min)/(n-1)
 
+    #Initializing the plots
     fig,ax1=plt.subplots(1,1)
-    fig2,(ax2,ax3)=plt.subplots(2,1)
+
+    if (time_serie):
+        fig2,(ax2,ax3)=plt.subplots(2,1)
+        fig2.suptitle(text_parameters)
 
     cmap = plt.cm.get_cmap("autumn", n)
 
-    # Figure 1: varying N2
+    #Changing the specific parameter
     for k in range(n):
+
+        #Changing the parameters
         N1_init=parameters[0]
         N2_init=parameters[1]
         a=parameters[2]
         b=parameters[3]
         c=parameters[4]
         d=parameters[5]
+
         #Calculating each equilibrium
         time,N1,N2=solve_rk8(dNdt_predator_prey, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
-
+        
         #Plotting phase diagram
         ax1.plot(N1,N2,color=cmap(n-1-k),label=f'{name[i]}={parameters[i]:.2f}')
-        ax1.set_title(f'Phase diagram with \n {text_parameters}')
-        ax1.set_xlabel(r'N1-Prey ($\frac{Population}{carrying-cap}$)')
-        ax1.set_ylabel(r'N2-Predators ($\frac{Population}{carrying-cap}$)')
-        ax1.legend()
         
-        fig2.suptitle(text_parameters)
-        #Plotting the evolution of the prey population for all values of d
-        ax2.plot(time,N1,color=cmap(n-1-k),label=f'{name[i]}={parameters[i]:.2f}',linestyle='--')
-        ax2.set_title(f"Prey population behavior")
-        ax2.set_xlabel("Time (years)")
-        ax2.set_ylabel(r'$\frac{Population}{carrying-cap}$')
-        ax2.legend()
+        if(time_serie):
 
-        #Plotting the evolution of the predator population for all values of d
-        ax3.plot(time,N2,color=cmap(n-1-k),label=f'{name[i]}={parameters[i]:.2f}',linestyle='--')
-        ax3.set_title(f"Predator population behavior")
-        ax3.set_xlabel("Time (years)")
-        ax3.set_ylabel(r'$\frac{Population}{carrying-cap}$')
-        ax3.legend()
+            #Plotting the evolution of the prey population for all values of d
+            ax2.plot(time,N1,color=cmap(n-1-k),label=f'{name[i]}={parameters[i]:.2f}',linestyle='--')
+
+            #Plotting the evolution of the predator population for all values of d
+            ax3.plot(time,N2,color=cmap(n-1-k),label=f'{name[i]}={parameters[i]:.2f}',linestyle='--')
 
         parameters[i]+=dz
 
+
+    ax1.set_title(f'Phase diagram with \n {text_parameters}')
+    ax1.set_xlabel(r'N1-Prey ($\frac{Population}{carrying-cap}$)')
+    ax1.set_ylabel(r'N2-Predators ($\frac{Population}{carrying-cap}$)')
+    ax1.legend()
+
+    if (time_serie):
+        ax2.set_title(f"Prey population behavior")
+        ax2.set_xlabel("Time (years)")
+        ax2.set_ylabel(r'N1 $\frac{Population}{carrying-cap}$')
+        ax2.legend()
+
+        ax3.set_title(f"Predator population behavior")
+        ax3.set_xlabel("Time (years)")
+        ax3.set_ylabel(r'N2 $\frac{Population}{carrying-cap}$')
+        ax3.legend()
+
+
 def question3():
-    #Calculating the solution for the basis case
+    """
+    This function answers question 3 . 
+    It plots the phase diagram and time series of the two population when changing 
+    one parameter at the time, to understand the influence of each parameter on the solution
+    """
+    
     dt=0.1
+    t_final=100
     a=1
     b=2
     c=1
     d=3
     N1_init=0.5
     N2_init=0.5
-    t_final=100
+    parameters=[N1_init,N2_init,a,b,c,d]
+    #Plotting the phase diagram and time series when changing one parameter at the time
+    Q3(5,1,3.5,10,def_parameters=parameters)
+    Q3(5,1,3,5,def_parameters=parameters,time_serie=1)
+    Q3(4,0,6,10,def_parameters=parameters)
+    Q3(4,0.5,2.5,5,def_parameters=parameters)
+    Q3(3,0.5,3.5,10,def_parameters=parameters)
+    Q3(3,1,3,5,def_parameters=parameters)
+    Q3(2,0.1,3.1,10,def_parameters=parameters)
+    Q3(2,0.2,1.8,5,def_parameters=parameters)
+    Q3(1,0.2,0.8,5,def_parameters=parameters,time_serie=1)
+    Q3(0,0.1,0.6,6,def_parameters=parameters,time_serie=1)
+    
+    #Calculating the solution for the standard case
+
     time,N1,N2=solve_rk8(dNdt_predator_prey, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
     
     #Plotting phase diagram of the basis case and
@@ -501,33 +497,6 @@ def question3():
     #Plotting the amplitude of N2 on the phase diagram
     plt.plot([0.33,0.33],[N2_min,N2_max],color='g')
     plt.text(N2_min,0.33 ,f'Amplitude of N2: {(N2_max-N2_min):.2f}', color='g')
-
-    plt.legend()
     plt.show()
     
-    #Q3(0,0.1,0.9,9)
-    #Q3(1,0.2,0.8,5)
-    Q3(2,0.2,1.8,5)
-    Q3(3,0.5,3.5,7)
-    #Q3(4,0.5,3.5,7)
-    #Q3(5,0.5,3.5,7)
     
-"""
-dt=0.1
-a=1
-b=2
-c=1
-d=3
-N1_init=0.33333333
-N2_init=0.5
-t_final=30
-time,N1,N2=solve_rk8(dNdt_predator_prey, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
-
-plt.figure()    #create a new figure for next plot
-plt.plot(time,N1, label=f'N1 with RK8',linestyle='--')
-plt.plot(time,N2, label=f'N2 with RK8',linestyle='--')
-plt.title(f"Lokta Volterra Competition model\n dt={dt} year a={a}, b={b}, c={c}, d={d}, N1(0)={N1_init}, N2(0)={N2_init}")
-plt.xlabel("Time (years)")
-plt.ylabel(r'$\frac{Population}{carrying-cap}$')
-plt.legend()
-"""
