@@ -3,7 +3,7 @@
 Author: Adrien Boissy
 Collaborators: None
 
-This code solves the Lokta-Voterra equations, for:
+This code solves the Lotka-Voterra equations, for:
 - a predator-prey situation
 - two species in competition
 
@@ -12,9 +12,9 @@ To obtain the plots for all different questions:
 •	run lab02.py
 •	plt.ion()
 •	Validate_model() To obtain the Figure 1 of the the HW (the first part of Q1)
-•	question1() : to obtain all the plots used for anwering Q1
-•	question2() : to obtain all the plots used for anwering Q2
-•	question3() : to obtain all the plots used for anwering Q3
+•	question1() : to obtain all the plots used for answering Q1
+•	question2() : to obtain all the plots used for answering Q2
+•	question3() : to obtain all the plots used for answering Q3
 
 '''
 
@@ -51,7 +51,8 @@ def dNdt_comp(t, N, a=1, b=2, c=1, d=3):
         The time derivatives of `N1` and `N2`.
     '''
 
-    # Here, N is a two-element list such that N1=N[0] and N2=N[1]
+    # Calculation the derivative
+    # N is a two-element list such that N1=N[0] and N2=N[1]
     dN1dt = a*N[0]*(1-N[0]) - b*N[0]*N[1]
     dN2dt = c*N[1]*(1-N[1]) - d*N[1]*N[0]
 
@@ -84,8 +85,8 @@ def dNdt_predator_prey(t, N, a=1, b=2, c=1, d=3):
     dN1dt, dN2dt : floats
         The time derivatives of `N1` and `N2`.
     '''
-
-    # Here, N is a two-element list such that N1=N[0] and N2=N[1]
+    # Calculation the derivative
+    # N is a two-element list such that N1=N[0] and N2=N[1]
     dN1dt = a*N[0] - b*N[0]*N[1]
     dN2dt = -c*N[1] + d*N[1]*N[0]
 
@@ -115,6 +116,7 @@ def euler_solve(func, N1_init, N2_init, dt, t_final=100.0, **kwargs):
         The ending time of the resolution in years
     
     '''
+    #initializing the arrays
     time=np.arange(0,100.0,dt)
 
     N1=np.zeros(time.size)
@@ -123,6 +125,7 @@ def euler_solve(func, N1_init, N2_init, dt, t_final=100.0, **kwargs):
     N2=np.zeros(time.size)
     N2[0]=N2_init
 
+#Populating N1 and N2 array using the Euler Method
     for i in range(1, time.size):
         dN1, dN2 = func(time[i-1], [N1[i-1], N2[i-1]], **kwargs )
         N1[i]= N1[i-1] + dt*dN1
@@ -197,7 +200,7 @@ def validate_model():
     ax1.plot(time_comp,N1_comp,label=f'N1 with Euler')
     ax1.plot(time_comp,N2_comp,label=f'N2 with Euler')
     
-    #RK8 method
+        #RK8 method
 
     time_rk8_comp,N1_rk8_comp,N2_rk8_comp=solve_rk8(dNdt_comp, N1_init=N1_init, N2_init=N2_init, dt=dt, t_final=t_final,a=a,b=b,c=c,d=d)
 
@@ -313,7 +316,7 @@ def question2():
     #this array contains every equilibrium state that I found.
     # each equilibrium is represented by an array containing the values of:
     # [a,b,c,d,N1_init,N2_init]
-    equilibriums=[[1,2,1,3,0.3,0.6],[1,3,1,2,0.6,0.3],[1,2,1,5,0.15,0.6],[1,2,1,7,0.1,0.6],[1,1,1,1,0.2,0.8],[1,1,1,1,0.8,0.8],[1,1,1,1,0.2,0.2],[1,1,1,1,0.2,0.5],[1,1,1,1,0.8,0.5]]
+    equilibriums=[[1,2,1,3,0.3,0.6],[1,3,1,2,0.6,0.3],[1,2,1,3,0.3,0.6],[1,2,1,5,0.15,0.6],[1,2,1,7,0.1,0.6],[1,1,1,1,0.2,0.8],[1,1,1,1,0.8,0.8],[1,1,1,1,0.2,0.2],[1,1,1,1,0.2,0.5],[1,1,1,1,0.8,0.5]]
 
     for equilibrium in equilibriums[::-1]:
         #Settings for each equilibrium
@@ -340,7 +343,7 @@ def question2():
 def Q3(i,z_min,z_max,n,time_serie=0,def_parameters=[0.5,0.5,1,2,1,3]):
     """
     This function plots the phase diagram and time evolution of populations, 
-    obtained with the Lokta-Volterra Predator-Prey equation,
+    obtained with the Lotka-Volterra Predator-Prey equation,
     when changing a single parameters. 
     
     There are 6 parameters for this equation that are 
@@ -376,7 +379,8 @@ def Q3(i,z_min,z_max,n,time_serie=0,def_parameters=[0.5,0.5,1,2,1,3]):
 
     dt=0.1
     t_final=100
-
+    #Initializing arrays so that I can plot (putting the right label and title)
+    #no matter which parameter is varying
     parameters=def_parameters.copy()
     name=['N1','N2','a','b','c','d']
     index=[0,1,2,3,4,5]
@@ -460,7 +464,7 @@ def question3():
     #Plotting the phase diagram and time series when changing one parameter at the time
     Q3(5,1,3.5,10,def_parameters=parameters)
     Q3(5,1,3,5,def_parameters=parameters,time_serie=1)
-    Q3(4,0,6,10,def_parameters=parameters)
+    Q3(4,0,3.5,10,def_parameters=parameters)
     Q3(4,0.5,2.5,5,def_parameters=parameters)
     Q3(3,0.5,3.5,10,def_parameters=parameters)
     Q3(3,1,3,5,def_parameters=parameters)
