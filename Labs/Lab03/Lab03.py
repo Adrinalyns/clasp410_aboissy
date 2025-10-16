@@ -60,7 +60,7 @@ def solve_heat_Dirichlet(c2=1,x_init=0,x_final=1,dx=0.02,t_init=0,t_final=0.2,dt
 
     return t,x,U
 
-def solve_heat_Neumann(c2=1,x_init=0,x_final=1,dx=0.02,t_init=0,t_final=0.2,dt=0.0002,T_border=0):
+def solve_heat(c2=1,x_init=0,x_final=1,dx=0.02,t_init=0,t_final=0.2,dt=0.0002,lowerbound=0,upperbound=0):
     """
     Solve the Heat equation for a bar with Neumann boundary conditions, and an initial condition of Ti(x)=4x-4x^2
 
@@ -107,8 +107,19 @@ def solve_heat_Neumann(c2=1,x_init=0,x_final=1,dx=0.02,t_init=0,t_final=0.2,dt=0
     #Solve equation
     for j in range(N-1):
         U[1:M-1,j+1] = (1-2*r)*U[1:M-1,j]+ r*(U[2:M,j]+ U[:M-2,j])
-        U[0,j+1] = U[1,j+1] #Neumann boundary condition at x=x_init
-        U[M-1,j+1] = U[M-2,j+1] #Neumann boundary condition at x=x_final
+        if lowerbound is None:
+            U[0,j+1] = U[1,j+1] #Neumann boundary condition at x=x_init
+        elif callable(lowerbound):
+            U[0,j+1] = lowerbound(t[j+1])
+        else:
+            U[0,j+1] = lowerbound
+    
+        if upperbound is None:
+            U[-1,j+1] = U[-2,j+1] #Neumann boundary condition at x=x_final
+        elif callable(upperbound):
+            U[-1,j+1] = upperbound(t[j+1])
+        else:
+            U[-1,j+1] = upperbound
     return t,x,U
 
 def plot_heatsolve(x,t,U,title,**kwargs):
