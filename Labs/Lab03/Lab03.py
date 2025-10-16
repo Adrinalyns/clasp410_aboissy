@@ -9,17 +9,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 #plt.style.use('seaborn-darkgrid')
 
-def solve_heat(c2=1,x_init=0,x_final=1,dx=0.2,t_init=0,t_final=0.2,dt=0.02,T_border=0):
+def solve_heat_Dirichlet(c2=1,x_init=0,x_final=1,dx=0.02,t_init=0,t_final=0.2,dt=0.0002,T_border=0):
     """
+    Solve the Heat equation for a bar with Dirichlet boundary conditions, and an initial condition of Ti(x)=4x-4x^2
+    
     Parameters:
     ----------
     c2: float
         c^2, the square of the diffusion coefficient
-     XXXXX
-
-     XXXXX
-     XXXX
-
+    x_init, x_final : float
+        The initial and final space values, they are included in the grid
+    dx : float
+        The space step
+    t_init, t_final : float
+        The initial and final time values, they are included in the grid
+    dt : float
+        The time step
+    T_border : float, default 0
+        The temperature at the borders of the grid
 
     returns:
     ---------
@@ -53,6 +60,57 @@ def solve_heat(c2=1,x_init=0,x_final=1,dx=0.2,t_init=0,t_final=0.2,dt=0.02,T_bor
 
     return t,x,U
 
+def solve_heat_Neumann(c2=1,x_init=0,x_final=1,dx=0.02,t_init=0,t_final=0.2,dt=0.0002,T_border=0):
+    """
+    Solve the Heat equation for a bar with Neumann boundary conditions, and an initial condition of Ti(x)=4x-4x^2
+
+    Parameters:
+    ----------
+    c2: float
+        c^2, the square of the diffusion coefficient
+    x_init, x_final : float
+        The initial and final space values, they are included in the grid
+    dx : float
+        The space step
+    t_init, t_final : float
+        The initial and final time values, they are included in the grid
+    dt : float
+        The time step
+    T_border : float, default 0
+        The temperature at the borders of the grid
+
+    returns:
+    ---------
+    x,t : 1D Numpy arrays
+        Space and time values, respectively
+    U : Numpy array
+        The solution of the heat equation, size is nSpace x nTime
+
+    """
+
+    #check stability criteria
+    dt_max = dx**2 / (2*c2)
+    if (dt > dx**2 /(2*c2)):
+        raise ValueError(f'DANGER: dt={dt} > dt_max={dt_max}.')
+
+    N=int((t_final-t_init)/dt)+1
+    M=int((x_final-x_init)/dx)+1
+    #Set up space and time grid
+    t = np.linspace(t_init,t_final,N)
+    x = np.linspace(x_init,x_final,M)
+    #Create solution matrix and set initial condition
+    U=np.zeros([M,N])
+    U[:,0]=4*x -4*x**2
+
+    #Get the r coeff
+    r=c2*(dt/dx**2)
+    #Solve equation
+    for j in range(N-1):
+        U[1:M-1,j+1] = (1-2*r)*U[1:M-1,j]+ r*(U[2:M,j]+ U[:M-2,j])
+        U[0,j+1] = U[1,j+1] #Neumann boundary condition at x=x_init
+        U[M-1,j+1] = U[M-2,j+1] #Neumann boundary condition at x=x_final
+    return t,x,U
+
 def plot_heatsolve(x,t,U,title,**kwargs):
     '''
     Plot the 2D solution for the 'solve_heat' function
@@ -79,14 +137,14 @@ def plot_heatsolve(x,t,U,title,**kwargs):
     '''
 
     #Create and configure a figure & axes:
-    fig,ax=plt.subplots(1,1,figsize=(8,8))
+    fig,ax=plt.subplots(1,1,figsize=(8,7))
 
     #check out for kwargs default
     if 'cmap' not in kwargs:
         kwargs['cmap']='hot'
 
     #Add contour to our axes
-    contour=ax.pcolormesh(t,x,U,**kwargs)
+    contour=ax.pcolormesh(t,x,U,shading='auto',**kwargs)
     cbar=plt.colorbar(contour)
 
     #Add labels to the plot
