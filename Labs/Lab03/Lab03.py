@@ -28,6 +28,7 @@ def bar_initial_T(x):
         Initial temperature of the bar at the position x
     '''
     return 4*x - 4*x**2
+
 def initial_0(x):
     '''
     Function that return the Initial temperature in the Kangerlussuaq ground as 0 °C everywhere
@@ -43,6 +44,113 @@ def initial_0(x):
         Initial temperature of the soil at the depth x (°C)
     '''
     return 0
+
+def temp_kanger(t):
+    '''
+    This function returns the temperature (°C) at the surface in Kangerlussuaq as a function of time (s).
+
+    Parameters:
+    -----------
+    t : float
+        Time in seconds
+
+    Returns:
+    ---------
+    temp : float
+        Temperature in degree Celsius at the Surface in Kangerlussuaq
+    '''
+
+    # Kangerlussuaq average temperature:
+    t_kanger = np.array([-19.7,-21.0,10.7, 8.5, 3.1,-17.,-6.0,-8.4, 2.3, 8.4,-12.0,-16.9])
+    
+    t_amp = (t_kanger - t_kanger.mean()).max()
+    omega=360*t/S_IN_YEAR # conversion of the time in second into a fraction of period, that represent the fraction of the year
+    return t_amp*np.sin(np.pi/180 * omega - np.pi/2) + t_kanger.mean()
+
+def test_temp_surface(temperature_surface=temp_kanger):
+    '''
+    Test the temp_kanger function by plotting the temperature over 2 years.
+    '''
+    t_max=2*S_IN_YEAR
+    t=np.arange(0,t_max,3600)
+
+    Temperatures=temperature_surface(t)
+    fig,ax=plt.subplots(1,1)
+    ax.plot(t/S_IN_YEAR,Temperatures)
+    ax.set_xlabel('Time (years)')
+    ax.set_ylabel('Temperature (°C)')
+    ax.set_title('Kangerlussuaq Surface Temperature over 2 years')
+    plt.show()
+
+def temp_kanger_0_5(t):
+    '''
+    This function returns the temperature (°C) at the surface in Kangerlussuaq as a function of time (s)
+    with 0.5°C of mean global warming.
+
+    Parameters:
+    -----------
+    t : float
+        Time in seconds
+
+    Returns:
+    ---------
+    temp : float
+        Temperature in degree Celsius at the Surface in Kangerlussuaq
+    '''
+
+    # Kangerlussuaq average temperature:
+    t_kanger = np.array([-19.7,-21.0,10.7, 8.5, 3.1,-17.,-6.0,-8.4, 2.3, 8.4,-12.0,-16.9])
+    
+    t_amp = (t_kanger - t_kanger.mean()).max()
+    omega=360*t/S_IN_YEAR # conversion of the time in second into a fraction of period, that represent the fraction of the year
+    return t_amp*np.sin(np.pi/180 * omega - np.pi/2) + t_kanger.mean() +0.5
+
+def temp_kanger_1(t):
+    '''
+    This function returns the temperature (°C) at the surface in Kangerlussuaq as a function of time (s)
+    with 1°C of mean global warming.
+
+    Parameters:
+    -----------
+    t : float
+        Time in seconds
+
+    Returns:
+    ---------
+    temp : float
+        Temperature in degree Celsius at the Surface in Kangerlussuaq
+    '''
+
+    # Kangerlussuaq average temperature:
+    t_kanger = np.array([-19.7,-21.0,10.7, 8.5, 3.1,-17.,-6.0,-8.4, 2.3, 8.4,-12.0,-16.9])
+    
+    t_amp = (t_kanger - t_kanger.mean()).max()
+    omega=360*t/S_IN_YEAR # conversion of the time in second into a fraction of period, that represent the fraction of the year
+    return t_amp*np.sin(np.pi/180 * omega - np.pi/2) + t_kanger.mean() +1
+
+def temp_kanger_3(t):
+    '''
+    This function returns the temperature (°C) at the surface in Kangerlussuaq as a function of time (s)
+    with 3°C of mean global warming.
+
+    Parameters:
+    -----------
+    t : float
+        Time in seconds
+
+    Returns:
+    ---------
+    temp : float
+        Temperature in degree Celsius at the Surface in Kangerlussuaq
+    '''
+
+    # Kangerlussuaq average temperature:
+    t_kanger = np.array([-19.7,-21.0,10.7, 8.5, 3.1,-17.,-6.0,-8.4, 2.3, 8.4,-12.0,-16.9])
+    
+    t_amp = (t_kanger - t_kanger.mean()).max()
+    omega=360*t/S_IN_YEAR # conversion of the time in second into a fraction of period, that represent the fraction of the year
+    return t_amp*np.sin(np.pi/180 * omega - np.pi/2) + t_kanger.mean() +3
+
 
 
 def solve_heat(c2=1,x_init=0,x_final=1,dx=0.02,x_array_init=bar_initial_T,t_init=0,t_final=0.2,dt=0.0002,lowerbound=0,upperbound=0):
@@ -112,7 +220,6 @@ def solve_heat(c2=1,x_init=0,x_final=1,dx=0.02,x_array_init=bar_initial_T,t_init
         else:
             U[-1,j+1] = upperbound #Dirichlet constant boundary condition
     return x,t,U
-
 
 def test_solve_heat():
     '''
@@ -209,7 +316,7 @@ def question_2():
     Kangerlussuaq_T_variation(50)
     
 
-def Kangerlussuaq_T_variation(nb_years):
+def Kangerlussuaq_T_variation(nb_years,temp_surface=temp_kanger):
 
     #defining the parameters of the resolution
     c2=0.25e-6 #m2/s
@@ -221,7 +328,7 @@ def Kangerlussuaq_T_variation(nb_years):
     t_final=nb_years*S_IN_YEAR #s
     dt=1/5.*S_IN_DAY #s
     lowerbound=5 #°C
-    upperbound=temp_kanger #callable
+    upperbound=temp_surface #callable
 
     #Solving the Temperature using solve_heat()
     x,t,U=solve_heat(c2=c2,x_init=x_init,x_final=x_final,dx=dx,x_array_init=initial_T,t_init=t_init,t_final=t_final,dt=dt,lowerbound=lowerbound,upperbound=upperbound)
@@ -284,8 +391,6 @@ def Kangerlussuaq_T_variation(nb_years):
 
 
     
-
-    
 def plot_heatsolve(x,t,U,title,units=['m','s'],**kwargs):
     '''
     Plot the 2D solution for the 'solve_heat' function
@@ -330,45 +435,6 @@ def plot_heatsolve(x,t,U,title,units=['m','s'],**kwargs):
     plt.show()
 
     return fig,ax,cbar
-
-def temp_kanger(t,T_shift=0):
-    '''
-    This function returns the temperature (°C) at the surface in Kangerlussuaq as a function of time (s).
-
-    Parameters:
-    -----------
-    t : float
-        Time in seconds
-    T_shift : float, default to 0
-        The temperature shift of mean temperature due to Climate Change (°C)
-    Returns:
-    ---------
-    temp : float
-        Temperature in degree Celsius at the Surface in Kangerlussuaq
-    '''
-
-    # Kangerlussuaq average temperature:
-    t_kanger = np.array([-19.7,-21.0,10.7, 8.5, 3.1,-17.,-6.0,-8.4, 2.3, 8.4,-12.0,-16.9])
-    
-    t_amp = (t_kanger - t_kanger.mean()).max()
-    omega=360*t/S_IN_YEAR # conversion of the time in second into a fraction of period, that represent the fraction of the year
-    return t_amp*np.sin(np.pi/180 * omega - np.pi/2) + t_kanger.mean() + T_shift
-
-def test_temp_kanger():
-    '''
-    Test the temp_kanger function by plotting the temperature over 2 years.
-    '''
-    t_max=2*S_IN_YEAR
-    t=np.arange(0,t_max,3600)
-
-    Temperatures=temp_kanger(t)
-    fig,ax=plt.subplots(1,1)
-    ax.plot(t/S_IN_YEAR,Temperatures)
-    ax.set_xlabel('Time (years)')
-    ax.set_ylabel('Temperature (°C)')
-    ax.set_title('Kangerlussuaq Surface Temperature over 2 years')
-    plt.show()
-
 
 
 
