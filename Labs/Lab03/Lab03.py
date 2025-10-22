@@ -9,7 +9,43 @@ import matplotlib.pyplot as plt
 import numpy as np
 #plt.style.use('seaborn-darkgrid')
 
-def solve_heat(c2=1,x_init=0,x_final=1,dx=0.02,t_init=0,t_final=0.2,dt=0.0002,lowerbound=0,upperbound=0):
+S_IN_YEAR=365.25*24*3600
+S_IN_DAY=24*3600
+DAY_IN_YEAR=365.25
+
+def bar_initial_T(x):
+    '''
+    Initial temperature distribution in the bar
+
+    Parameters:
+    -----------
+    x : Numpy array
+        A position in the bar
+
+    Returns:
+    ---------
+    T : Numpy array
+        Initial temperature of the bar at the position x
+    '''
+    return 4*x - 4*x**2
+def initial_0(x):
+    '''
+    Function that return the Initial temperature in the Kangerlussuaq ground as 0 °C everywhere
+
+    Parameters:
+    -----------
+    x : Numpy array
+        The soil depth (m)
+
+    Returns:
+    ---------
+    T : Numpy array
+        Initial temperature of the soil at the depth x (°C)
+    '''
+    return 0
+
+
+def solve_heat(c2=1,x_init=0,x_final=1,dx=0.02,x_array_init=bar_initial_T,t_init=0,t_final=0.2,dt=0.0002,lowerbound=0,upperbound=0):
     """
     Solve the Heat equation for a bar with Neumann boundary conditions, and an initial condition of Ti(x)=4x-4x^2
 
@@ -21,6 +57,8 @@ def solve_heat(c2=1,x_init=0,x_final=1,dx=0.02,t_init=0,t_final=0.2,dt=0.0002,lo
         The initial and final space values, they are included in the grid
     dx : float
         The space step
+    x_array_init : function
+        The initial temperature along the bar, it should be a function of x
     t_init, t_final : float
         The initial and final time values, they are included in the grid
     dt : float
@@ -37,7 +75,7 @@ def solve_heat(c2=1,x_init=0,x_final=1,dx=0.02,t_init=0,t_final=0.2,dt=0.0002,lo
     x,t : 1D Numpy arrays
         Space and time values, respectively
     U : Numpy array
-        The solution of the heat equation, size is nSpace x nTime
+        The solution of the heat equation, size is N (space) x M (time)
 
     """
 
@@ -53,7 +91,7 @@ def solve_heat(c2=1,x_init=0,x_final=1,dx=0.02,t_init=0,t_final=0.2,dt=0.0002,lo
     x = np.linspace(x_init,x_final,M)
     #Create solution matrix and set initial condition
     U=np.zeros([M,N])
-    U[:,0]=4*x -4*x**2
+    U[:,0]=x_array_init(x)
 
     #Get the r coeff
     r=c2*(dt/dx**2)
@@ -73,21 +111,22 @@ def solve_heat(c2=1,x_init=0,x_final=1,dx=0.02,t_init=0,t_final=0.2,dt=0.0002,lo
             U[-1,j+1] = upperbound(t[j+1]) #Dirichlet boundary condition function of time
         else:
             U[-1,j+1] = upperbound #Dirichlet constant boundary condition
-    return t,x,U
+    return x,t,U
+
 
 def test_solve_heat():
     '''
     This function tests the solve_heat function against a known solution.
     The parameters are :
-    c2=1 m^2/s
-    x_init=0 m
-    x_final=1 m
-    dx=0.2 m
-    t_init=0 s
-    t_final=0.2 s
-    dt=0.02 s
+    c2=1 m^2/s, 
+    x_init=0 m, x_final=1 m, dx=0.2 m
+    t_init=0 s, t_final=0.2 s, dt=0.02 s
     U(x,0)= 4x-4x^2
     lowerbound = upperbound = 0 °C
+
+    To verify that the two solution are close enough, the function checks that 
+    the maximum error between the two solution is below 1e-3, if not an assertion error is raised.
+    If the test is passed, a message is printed with the maximum error found.
     '''
     c2=1
     x_init=0
@@ -130,18 +169,124 @@ def test_solve_heat():
     for i in range(N):
         for j in range(M):
             assert(abs(U[i,j]-sol10p3[i,j])<max_error_allowed), f'at the position {x[i]} and the time {t[j]}, ' + \
-            f'\nthe difference between the computed solution and the known solution is too high : \n error of {abs(U[i,j]-sol10p3[i,j]):.5f}' + \
+            f'\nthe difference between the computed solution and the known solution is too high : \n error of {abs(U[i,j]-sol10p3[i,j]):.4f}' + \
             f' higher than {max_error_allowed}'
 
             #Change the maximum error found if the current error is higher
             if abs(U[i,j]-sol10p3[i,j])>max_error:
                 max_error=abs(U[i,j]-sol10p3[i,j])
 
-    print(f'Test passed ! \n the calculated solution is close to the known solution with a maximum error of {max_error:.5f} (max allowed is {max_error_allowed})')
+    print(f'Test passed ! \n the calculated solution is close to the known solution with a maximum error of {max_error:.6f} (max allowed is {max_error_allowed})')
+
+def question_1():
+    '''
+    This function answers question 1.
+    It test if the solve_heat function gives the ewpected result in a certain case,
+    when we know the expected result.
+    Then, it plot the result.
+    '''
+    
+    test_solve_heat()
+
+    c2=1
+    x_init=0
+    x_final=1
+    dx=0.2
+    t_init=0
+    t_final=0.2
+    dt=0.02
+    lowerbound = 0
+    upperbound = 0
+
+    x,t,U=solve_heat(c2=c2,x_init=x_init,x_final=x_final,dx=dx,t_init=t_init,t_final=t_final,dt=dt,lowerbound=lowerbound,upperbound=upperbound)
+    plot_heatsolve(x,t,U,'Temperature diffusion in a bar with Dirichlet boundary conditions')
+
+def question_2():
+    '''
+    This function answers question 2.
+    '''
+    Kangerlussuaq_T_variation(5)
+    Kangerlussuaq_T_variation(50)
+    
+
+def Kangerlussuaq_T_variation(nb_years):
+
+    #defining the parameters of the resolution
+    c2=0.25e-6 #m2/s
+    x_init=-100 #m
+    x_final=0 #m
+    dx=0.1 #m
+    initial_T=initial_0
+    t_init=0 #s
+    t_final=nb_years*S_IN_YEAR #s
+    dt=1/5.*S_IN_DAY #s
+    lowerbound=5 #°C
+    upperbound=temp_kanger #callable
+
+    #Solving the Temperature using solve_heat()
+    x,t,U=solve_heat(c2=c2,x_init=x_init,x_final=x_final,dx=dx,x_array_init=initial_T,t_init=t_init,t_final=t_final,dt=dt,lowerbound=lowerbound,upperbound=upperbound)
+    
+    #Converting time from seconds to years
+    t=t/S_IN_YEAR
+
+    #Choosing the best colorbar
+        #We want a diverging colormap centered on 0 °C, I chose the 'seismic' colormap
+        # Because it was a good visual representation of the temperature above and under 0°C
+        #And it was the only one that would allow to well the small variations around 0°C
+    colormap='seismic'
+        #To ensure that the True zero is at the center of the colormap, we need to center the vmin and vmax around 0
+        #We can see in the function temp_kanger that the temperature at the surface oscillate between around -22°C and 11°C
+        #So we can choose a vmax of 22°C and a vmin of -22°C to center the colormap around 0°C
+    vmax=23
+    vmin=-23
+    
+    #Plotting the temperature variation in the soil over time
+    plot_heatsolve(x,t,U,f'Temperature variation in the Kangerlussuaq soil during {nb_years} years',units=['m','year'],cmap=colormap,vmin=vmin,vmax=vmax)
+
+    #Finding the temperature array in the ground after nb_years in winter and summer
+    
+    loc = int(-S_IN_YEAR/dt) # Final year of the result.
+
+    # Extract the min values over the final year=winter
+    winter = U[:, loc:].min(axis=1)
+    # Extract the max values over the final year=summer
+    summer = U[:, loc:].max(axis=1)
+    #Finding the depth at which permafrost is isothermal
+    for k in range(1,len(winter)):
+        if (summer[-k]-winter[-k]<0.1):
+            isothermal_depth = x[-k]
+            break
+    #Finding the depth at which the permafrost base
+    for k in range(len(winter)):
+        if (winter[k]<0):
+            permafrost_base_depth = x[k]
+            break
+    #Finding the depth of the active layer
+    for k in range(1,len(winter)):
+        if (summer[-k]<0):
+            active_layer_depth = x[-k]
+            break
+
+    #Plotting the temperature profile in the ground in summer and winter after nb_years
+    fig2, ax2 = plt.subplots(1, 1, figsize=(10, 8))
+    ax2.plot(winter, x, label='Winter')
+    ax2.plot(summer, x, label='Summer')
+    ax2.axhline(isothermal_depth, color='k', linestyle='--', label=f'Isothermal depth at {isothermal_depth:.1f} m')
+    ax2.text(-5,isothermal_depth-5,f'isothermal permafrost', color='k')
+    ax2.axhline(permafrost_base_depth, color='b', linestyle='--', label=f'Permafrost base at {permafrost_base_depth:.1f} m')
+    ax2.text(-5,permafrost_base_depth-5,f'permafrost base', color='b')
+    ax2.axhline(active_layer_depth, color='r', linestyle='--', label=f'Active Layer at {active_layer_depth:.1f} m')
+    ax2.text(-5,active_layer_depth+5,f'Active layer', color='r')
+    ax2.set_xlabel('Temperature (°C)')
+    ax2.set_ylabel('Depth (m)')
+    ax2.set_title(f'Soil Temperature Profile in Kangerlussuaq after {nb_years} years')
+    ax2.legend()
 
 
-def plot_heatsolve(x,t,U,title,**kwargs):
+    
 
+    
+def plot_heatsolve(x,t,U,title,units=['m','s'],**kwargs):
     '''
     Plot the 2D solution for the 'solve_heat' function
 
@@ -179,8 +324,62 @@ def plot_heatsolve(x,t,U,title,**kwargs):
 
     #Add labels to the plot
     cbar.set_label(r'Temperature ($^{\circ}C$)')
-    ax.set_xlabel('Time ($s$)')
-    ax.set_ylabel('Position ($m$)')
+    ax.set_xlabel(f'Time (${units[1]}$)')
+    ax.set_ylabel(f'Position (${units[0]}$)')
     ax.set_title(title)
+    plt.show()
 
     return fig,ax,cbar
+
+def temp_kanger(t,T_shift=0):
+    '''
+    This function returns the temperature (°C) at the surface in Kangerlussuaq as a function of time (s).
+
+    Parameters:
+    -----------
+    t : float
+        Time in seconds
+    T_shift : float, default to 0
+        The temperature shift of mean temperature due to Climate Change (°C)
+    Returns:
+    ---------
+    temp : float
+        Temperature in degree Celsius at the Surface in Kangerlussuaq
+    '''
+
+    # Kangerlussuaq average temperature:
+    t_kanger = np.array([-19.7,-21.0,10.7, 8.5, 3.1,-17.,-6.0,-8.4, 2.3, 8.4,-12.0,-16.9])
+    
+    t_amp = (t_kanger - t_kanger.mean()).max()
+    omega=360*t/S_IN_YEAR # conversion of the time in second into a fraction of period, that represent the fraction of the year
+    return t_amp*np.sin(np.pi/180 * omega - np.pi/2) + t_kanger.mean() + T_shift
+
+def test_temp_kanger():
+    '''
+    Test the temp_kanger function by plotting the temperature over 2 years.
+    '''
+    t_max=2*S_IN_YEAR
+    t=np.arange(0,t_max,3600)
+
+    Temperatures=temp_kanger(t)
+    fig,ax=plt.subplots(1,1)
+    ax.plot(t/S_IN_YEAR,Temperatures)
+    ax.set_xlabel('Time (years)')
+    ax.set_ylabel('Temperature (°C)')
+    ax.set_title('Kangerlussuaq Surface Temperature over 2 years')
+    plt.show()
+
+
+
+
+'''
+c2=0.25e-6 #m2/s
+x_init=0 #m
+x_final=100 #m
+dx= #m
+t_init=0 #s
+t_final= #s
+dt= #s
+lowerbound=5 #°C
+upperbound=temp_kanger #callable
+'''
