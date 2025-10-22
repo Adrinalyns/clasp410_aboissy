@@ -7,7 +7,7 @@ Collaborators: None
 
 import matplotlib.pyplot as plt
 import numpy as np
-#plt.style.use('seaborn-darkgrid')
+plt.style.use('seaborn-darkgrid')
 
 S_IN_YEAR=365.25*24*3600
 S_IN_DAY=24*3600
@@ -165,8 +165,8 @@ def solve_heat(c2=1,x_init=0,x_final=1,dx=0.02,x_array_init=bar_initial_T,t_init
         The initial and final space values, they are included in the grid
     dx : float
         The space step
-    x_array_init : function
-        The initial temperature along the bar, it should be a function of x
+    x_array_init : function or array
+        The initial temperature along the bar, it should be a function of x or an array of size M
     t_init, t_final : float
         The initial and final time values, they are included in the grid
     dt : float
@@ -199,7 +199,10 @@ def solve_heat(c2=1,x_init=0,x_final=1,dx=0.02,x_array_init=bar_initial_T,t_init
     x = np.linspace(x_init,x_final,M)
     #Create solution matrix and set initial condition
     U=np.zeros([M,N])
-    U[:,0]=x_array_init(x)
+    if callable(x_array_init):
+        U[:,0]=x_array_init(x)
+    else:
+        U[:,0]=x_array_init
 
     #Get the r coeff
     r=c2*(dt/dx**2)
@@ -312,18 +315,66 @@ def question_2():
     '''
     This function answers question 2.
     '''
+
     Kangerlussuaq_T_variation(5)
-    Kangerlussuaq_T_variation(50)
+    Kangerlussuaq_T_variation(70)
     
+def question_3():
+    '''
+    This function answers question 3.
+    '''
+    #Scenario 3: 3°C of global warming
+    #Calculating the temperature profile after 100 years, to avoid waiting for convergence when plotting the temperature
+    x,t,U=Kangerlussuaq_T_variation(100,temp_surface=temp_kanger_3,initial_T=initial_0,plotting=False)
+    T_convergence_3 = U[:,-1]
+    Kangerlussuaq_T_variation(10,temp_surface=temp_kanger_3,complementary_title=' with 3°C of climate warming',initial_T=T_convergence_3,plotting=True)
+ 
+    #Scenario 2: 1°C of global warming
+    #Calculating the temperature profile after 100 years, to avoid waiting for convergence when plotting the temperature
+    x,t,U=Kangerlussuaq_T_variation(100,temp_surface=temp_kanger_1,initial_T=initial_0,plotting=False)
+    T_convergence_1 = U[:,-1]
+    Kangerlussuaq_T_variation(10,temp_surface=temp_kanger_1,complementary_title=' with 1°C of climate warming',initial_T=T_convergence_1,plotting=True)
+    
+    #Scenario 1: 0.5°C of global warming
+    #Calculating the temperature profile after 100 years, to avoid waiting for convergence when plotting the temperature
+    x,t,U=Kangerlussuaq_T_variation(100,temp_surface=temp_kanger_0_5,initial_T=initial_0,plotting=False)
+    T_convergence_0_5 = U[:,-1]
+    Kangerlussuaq_T_variation(10,temp_surface=temp_kanger_0_5,complementary_title=' with 0.5°C of climate warming',initial_T=T_convergence_0_5,plotting=True)
 
-def Kangerlussuaq_T_variation(nb_years,temp_surface=temp_kanger):
 
+def Kangerlussuaq_T_variation(nb_years,temp_surface=temp_kanger,complementary_title='',initial_T=initial_0,plotting=True):
+    '''
+    This function calculates and plot the temperature variation in the Kangerlussuaq soil over a given number of years, 
+    for a given surface temperature variation and a given initial temperature profile.
+    It plots the temperature over time and space in a 2D colormap,
+    and the temperature profile in the soil during summer and winter (and permafrost layers)
+    after the given number of years.
+
+    Parameters:
+    -----------
+    nb_years : int
+        The number of years to simulate
+    temp_surface : function, default temp_kanger
+        The function that gives the surface temperature variation over time
+    complementary_title : string, default ''
+        A complementary title to add on the plots (indicating for example the climate warming scenario, or the initial temperature profile)
+    initial_T : function or array, default initial_0
+        The initial temperature profile in the soil, it should be a function of depth or an array of size M
+    plotting : bool, default True
+        If True, the function will plot the results. If False, it will only return the results.
+   
+    Returns:
+    ---------
+    x,t : 1D arrays
+        Space and time scales
+    U : 2D array
+        The temperature in the soil for each depth and time (x,t)
+    '''
     #defining the parameters of the resolution
     c2=0.25e-6 #m2/s
     x_init=-100 #m
     x_final=0 #m
     dx=0.1 #m
-    initial_T=initial_0
     t_init=0 #s
     t_final=nb_years*S_IN_YEAR #s
     dt=1/5.*S_IN_DAY #s
@@ -333,62 +384,84 @@ def Kangerlussuaq_T_variation(nb_years,temp_surface=temp_kanger):
     #Solving the Temperature using solve_heat()
     x,t,U=solve_heat(c2=c2,x_init=x_init,x_final=x_final,dx=dx,x_array_init=initial_T,t_init=t_init,t_final=t_final,dt=dt,lowerbound=lowerbound,upperbound=upperbound)
     
-    #Converting time from seconds to years
-    t=t/S_IN_YEAR
+    if plotting:
+        #Converting time from seconds to years
+        t=t/S_IN_YEAR
 
-    #Choosing the best colorbar
-        #We want a diverging colormap centered on 0 °C, I chose the 'seismic' colormap
-        # Because it was a good visual representation of the temperature above and under 0°C
-        #And it was the only one that would allow to well the small variations around 0°C
-    colormap='seismic'
-        #To ensure that the True zero is at the center of the colormap, we need to center the vmin and vmax around 0
-        #We can see in the function temp_kanger that the temperature at the surface oscillate between around -22°C and 11°C
-        #So we can choose a vmax of 22°C and a vmin of -22°C to center the colormap around 0°C
-    vmax=23
-    vmin=-23
-    
-    #Plotting the temperature variation in the soil over time
-    plot_heatsolve(x,t,U,f'Temperature variation in the Kangerlussuaq soil during {nb_years} years',units=['m','year'],cmap=colormap,vmin=vmin,vmax=vmax)
+        #Choosing the best colorbar
+            #We want a diverging colormap centered on 0 °C, I chose the 'seismic' colormap
+            # Because it was a good visual representation of the temperature above and under 0°C
+            #And it was the only one that would allow to well the small variations around 0°C
+        colormap='seismic'
+            #To ensure that the True zero is at the center of the colormap, we need to center the vmin and vmax around 0
+            #We can see in the function temp_kanger that the temperature at the surface oscillate between around -22°C and 11°C
+            #So we can choose a vmax of 22°C and a vmin of -22°C to center the colormap around 0°C
+        vmax=23
+        vmin=-23
+        
+        #Plotting the temperature variation in the soil over time
+        plot_heatsolve(x,t,U,f'Temperature variation in the Kangerlussuaq soil during {nb_years} years {complementary_title}',units=['m','year'],cmap=colormap,vmin=vmin,vmax=vmax)
 
-    #Finding the temperature array in the ground after nb_years in winter and summer
-    
-    loc = int(-S_IN_YEAR/dt) # Final year of the result.
+        #Finding the temperature array in the ground after nb_years in winter and summer
+        
+        loc = int(-S_IN_YEAR/dt) # Final year of the result.
 
-    # Extract the min values over the final year=winter
-    winter = U[:, loc:].min(axis=1)
-    # Extract the max values over the final year=summer
-    summer = U[:, loc:].max(axis=1)
-    #Finding the depth at which permafrost is isothermal
-    for k in range(1,len(winter)):
-        if (summer[-k]-winter[-k]<0.1):
-            isothermal_depth = x[-k]
-            break
-    #Finding the depth at which the permafrost base
-    for k in range(len(winter)):
-        if (winter[k]<0):
-            permafrost_base_depth = x[k]
-            break
-    #Finding the depth of the active layer
-    for k in range(1,len(winter)):
-        if (summer[-k]<0):
-            active_layer_depth = x[-k]
-            break
+        # Extract the min values over the final year=winter
+        winter = U[:, loc:].min(axis=1)
+        # Extract the max values over the final year=summer
+        summer = U[:, loc:].max(axis=1)
+        #Finding the depth at which permafrost is isothermal
+        for k in range(1,len(winter)):
+            if (summer[-k]-winter[-k]<0.1):
+                isothermal_depth = x[-k]
+                break
+        #Finding the depth at which the permafrost base
+        for k in range(len(winter)):
+            if (winter[k]<0):
+                permafrost_base_depth = x[k]
+                break
+        #Finding the depth of the active layer
+        for k in range(1,len(winter)):
+            if (summer[-k]<0):
+                active_layer_depth = x[-k]
+                break
 
-    #Plotting the temperature profile in the ground in summer and winter after nb_years
-    fig2, ax2 = plt.subplots(1, 1, figsize=(10, 8))
-    ax2.plot(winter, x, label='Winter')
-    ax2.plot(summer, x, label='Summer')
-    ax2.axhline(isothermal_depth, color='k', linestyle='--', label=f'Isothermal depth at {isothermal_depth:.1f} m')
-    ax2.text(-5,isothermal_depth-5,f'isothermal permafrost', color='k')
-    ax2.axhline(permafrost_base_depth, color='b', linestyle='--', label=f'Permafrost base at {permafrost_base_depth:.1f} m')
-    ax2.text(-5,permafrost_base_depth-5,f'permafrost base', color='b')
-    ax2.axhline(active_layer_depth, color='r', linestyle='--', label=f'Active Layer at {active_layer_depth:.1f} m')
-    ax2.text(-5,active_layer_depth+5,f'Active layer', color='r')
-    ax2.set_xlabel('Temperature (°C)')
-    ax2.set_ylabel('Depth (m)')
-    ax2.set_title(f'Soil Temperature Profile in Kangerlussuaq after {nb_years} years')
-    ax2.legend()
+        #Plotting the temperature profile in the ground in summer and winter after nb_years
+        fig2, ax2 = plt.subplots(1, 1, figsize=(10, 8))
 
+        #plotting winter and summer temperature profiles
+        ax2.plot(winter, x, label='Winter')
+        ax2.plot(summer, x, label='Summer')
+
+        #Plotting permafrost layers
+
+            #Isothermal layer
+        ax2.axhline(isothermal_depth, color='k', linestyle='--')
+        ax2.text(0,isothermal_depth+3,f'Isothermal permafrost', color='k')
+        ax2.text(plt.xlim()[1] + 0.5,isothermal_depth,f'{isothermal_depth:.1f} m', color='k')
+
+            #Permafrost base
+        ax2.axhline(permafrost_base_depth, color='b', linestyle='--')
+        ax2.text(0,permafrost_base_depth+3,f'Permafrost base', color='b')
+        ax2.text(plt.xlim()[1] + 0.5,permafrost_base_depth,f'{permafrost_base_depth:.1f} m', color='b')
+            
+            #Active layer
+        ax2.axhline(active_layer_depth, color='g', linestyle='--')
+        ax2.text(0,active_layer_depth+3,f'Active layer', color='g')
+        ax2.text(plt.xlim()[1] + 0.5,active_layer_depth,f'{active_layer_depth:.1f} m', color='g')
+
+        #Plotting the permafrost thickness
+        permafrost_thickness = active_layer_depth - permafrost_base_depth
+        ax2.annotate('', xy=(-10, permafrost_base_depth), xytext=(-10, active_layer_depth), arrowprops=dict(arrowstyle='<->', color='red', lw=2))
+        ax2.text(-12, permafrost_base_depth + 5, f'Permafrost thickness: {permafrost_thickness:.1f} m', color='red', rotation=90)
+
+        #Adding axes label and title
+        ax2.set_xlabel('Temperature (°C)')
+        ax2.set_ylabel('Depth (m)')
+        ax2.set_title(f'Soil Temperature Profile in Kangerlussuaq after {nb_years} years {complementary_title}')
+        ax2.legend()
+
+    return x,t,U
 
     
 def plot_heatsolve(x,t,U,title,units=['m','s'],**kwargs):
