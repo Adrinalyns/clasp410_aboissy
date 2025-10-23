@@ -3,6 +3,19 @@
 Author: Adrien Boissy
 Collaborators: None
 
+This python file contains functions to solve the 1D heat equation, and apply it to model the 
+permafrost temperature variation in Kangerlussuaq, Greenland. It includes functions, plots for each question,
+and test functions to verify the the code.
+
+TO REPRODUCE THE VALUES AND PLOTS IN MY REPORT, DO THIS:
+To obtain the plots for all different questions:
+•	run lab03.py
+•	plt.ion()
+•	question1() : to validate the solver and obtain the plot, in Q1
+•	question2() : to obtain all the plots used for answering Q2
+•	question3() : to obtain all the plots used for answering Q3
+
+
 '''
 
 import matplotlib.pyplot as plt
