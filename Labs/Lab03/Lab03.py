@@ -323,6 +323,7 @@ def question_1():
 
     x,t,U=solve_heat(c2=c2,x_init=x_init,x_final=x_final,dx=dx,t_init=t_init,t_final=t_final,dt=dt,lowerbound=lowerbound,upperbound=upperbound)
     plot_heatsolve(x,t,U,'Temperature diffusion in a bar with Dirichlet boundary conditions')
+    print("Hey! I made a commit here!")
 
 def question_2():
     '''
