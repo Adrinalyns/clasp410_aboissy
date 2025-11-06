@@ -251,21 +251,20 @@ def test_solve_heat():
     the maximum error between the two solution is below 1e-3, if not an assertion error is raised.
     If the test is passed, a message is printed with the maximum error found.
     '''
-    c2=1
-    x_init=0
-    x_final=1
-    dx=0.2
-    t_init=0
-    t_final=0.2
-    dt=0.02
-    lowerbound = 0
-    upperbound = 0
 
+    params = dict(
+        c2=1.0,
+        x_init=0.0, x_final=1.0, dx=0.2,
+        t_init=0.0, t_final=0.2, dt=0.02,
+        lowerbound=0.0, upperbound=0.0,
+    )
+    
     #Solving the heat equation in the given situation with our solover function : solve_heat()
-    t,x,U=solve_heat(c2=c2,x_init=x_init,x_final=x_final,dx=dx,t_init=t_init,t_final=t_final,dt=dt,lowerbound=lowerbound,upperbound=upperbound)
+    x,t,U=solve_heat(**params)
 
     # Solution to problem 10.3 from fink/matthews as a nested list:
-    sol10p3 = [[0.000000, 0.640000, 0.960000, 0.960000, 0.640000, 0.000000],
+    # Convert to an array and transpose it to get correct ordering:
+    sol10p3 = np.array([[0.000000, 0.640000, 0.960000, 0.960000, 0.640000, 0.000000],
            [0.000000, 0.480000, 0.800000, 0.800000, 0.480000, 0.000000],
            [0.000000, 0.400000, 0.640000, 0.640000, 0.400000, 0.000000],
            [0.000000, 0.320000, 0.520000, 0.520000, 0.320000, 0.000000],
@@ -275,16 +274,15 @@ def test_solve_heat():
            [0.000000, 0.137500, 0.222500, 0.222500, 0.137500, 0.000000],
            [0.000000, 0.111250, 0.180000, 0.180000, 0.111250, 0.000000],
            [0.000000, 0.090000, 0.145625, 0.145625, 0.090000, 0.000000],
-           [0.000000, 0.072812, 0.117813, 0.117813, 0.072812, 0.000000]]
-
-    # Convert to an array and transpose it to get correct ordering:
-    sol10p3 = np.array(sol10p3).transpose()
+           [0.000000, 0.072812, 0.117813, 0.117813, 0.072812, 0.000000]],dtype=float).T
 
     # Check that our solution is close to the known solution:
-    #Verify that the two matrices have the same shapes
-    assert (U.shape == sol10p3.shape), f'the shape of the solution is incorrect, it is {U.shape} while it should be {sol10p3.shape}'
+    # Verify that the two matrices have the same shapes
+    assert U.shape == sol10p3.shape, (
+    f"Shape mismatch: got {U.shape}, expected {sol10p3.shape}"
+    )
     N,M=U.shape
-
+    
     max_error_allowed=1e-3 #Maximum error allowed to pass the test
     max_error=0 #Maximum error found in the test
     
