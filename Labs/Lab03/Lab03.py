@@ -282,7 +282,7 @@ def test_solve_heat():
     f"Shape mismatch: got {U.shape}, expected {sol10p3.shape}"
     )
     N,M=U.shape
-    
+
     max_error_allowed=1e-3 #Maximum error allowed to pass the test
     max_error=0 #Maximum error found in the test
     
@@ -302,9 +302,7 @@ def test_solve_heat():
 def question_1():
     '''
     This function answers question 1.
-    It test if the solve_heat function gives the ewpected result in a certain case,
-    when we know the expected result.
-    Then, it plot the result.
+    It utilize test_solve_heat() to test if the solve_heat() function gives the expected result in certain cases. If so, this function will generate a plot of both reference and compuated solution for comparison.
     '''
 
     #--------- Calculated solutions
