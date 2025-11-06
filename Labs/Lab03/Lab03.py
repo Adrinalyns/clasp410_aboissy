@@ -308,22 +308,64 @@ def question_1():
     when we know the expected result.
     Then, it plot the result.
     '''
-    
+
+    #--------- Calculated solutions
     test_solve_heat()
+    params = dict(
+        c2=1.0,
+        x_init=0.0, x_final=1.0, dx=0.2,
+        t_init=0.0, t_final=0.2, dt=0.02,
+        lowerbound=0.0, upperbound=0.0,
+    )
+    x,t,U=solve_heat(**params)
+    
+    #--------- Reference solutions
+    sol10p3 = np.array([[0.000000, 0.640000, 0.960000, 0.960000, 0.640000, 0.000000],
+           [0.000000, 0.480000, 0.800000, 0.800000, 0.480000, 0.000000],
+           [0.000000, 0.400000, 0.640000, 0.640000, 0.400000, 0.000000],
+           [0.000000, 0.320000, 0.520000, 0.520000, 0.320000, 0.000000],
+           [0.000000, 0.260000, 0.420000, 0.420000, 0.260000, 0.000000],
+           [0.000000, 0.210000, 0.340000, 0.340000, 0.210000, 0.000000],
+           [0.000000, 0.170000, 0.275000, 0.275000, 0.170000, 0.000000],
+           [0.000000, 0.137500, 0.222500, 0.222500, 0.137500, 0.000000],
+           [0.000000, 0.111250, 0.180000, 0.180000, 0.111250, 0.000000],
+           [0.000000, 0.090000, 0.145625, 0.145625, 0.090000, 0.000000],
+           [0.000000, 0.072812, 0.117813, 0.117813, 0.072812, 0.000000]], dtype=float).T
+    x_p = np.arange(params['x_init'], params['x_final'] + params['dx'], params['dx'])
+    t_p = np.arange(params['t_init'], params['t_final'] + params['dt'], params['dt'])
+    
+    #--------- Plots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
+    # --- Heatmap 1 for reference solution
+    plot_heatsolve(x_p,t_p,sol10p3, "Reference Solution", ax=ax1)
+    ax1.set_xlabel("Time")
+    ax1.set_ylabel("Position")
+    # --- Add labels in grid cells
+    for i in range(sol10p3.shape[0]):
+        for j in range(sol10p3.shape[1]):
+            ax1.text(
+                t_p[j], x_p[i], f"{sol10p3[i,j]:.3f}",
+                ha='center', va='center',
+                color='blue', fontsize=10
+            )
+    plt.rcParams.update({'font.size': 12})
 
-    c2=1
-    x_init=0
-    x_final=1
-    dx=0.2
-    t_init=0
-    t_final=0.2
-    dt=0.02
-    lowerbound = 0
-    upperbound = 0
+    # --- Heatmap #2 for computed solution
+    plot_heatsolve(x,t,U,'Computed Solution',ax=ax2)
+    ax2.set_xlabel("Time")
+    ax2.set_ylabel("Position")
+    # --- Add labels in grid cells
+    for i in range(U.shape[0]):
+        for j in range(U.shape[1]):
+            ax2.text(
+                t[j], x[i], f"{U[i,j]:.3f}",
+                ha='center', va='center',
+                color='blue', fontsize=10
+            )
+    plt.rcParams.update({'font.size': 12})
 
-    x,t,U=solve_heat(c2=c2,x_init=x_init,x_final=x_final,dx=dx,t_init=t_init,t_final=t_final,dt=dt,lowerbound=lowerbound,upperbound=upperbound)
-    plot_heatsolve(x,t,U,'Temperature diffusion in a bar with Dirichlet boundary conditions')
-    print("Hey! I made a commit here!")
+    plt.tight_layout()
+    plt.show()
 
 def question_2():
     '''
@@ -478,7 +520,7 @@ def Kangerlussuaq_T_variation(nb_years,temp_surface=temp_kanger,complementary_ti
     return x,t,U
 
     
-def plot_heatsolve(x,t,U,title,units=['m','s'],**kwargs):
+def plot_heatsolve(x,t,U,title,units=['m','s'], ax=None,**kwargs):
     '''
     Plot the 2D solution for the 'solve_heat' function
 
@@ -492,6 +534,9 @@ def plot_heatsolve(x,t,U,title,units=['m','s'],**kwargs):
         The solution of the heat equation, size is nSpace x nTime
     title: string
         the title for the plot
+    ax: axis
+        Plotting axis, default to none. If no axis is provided, create a new figure and axis.
+
     
     Returns:
     ----------
@@ -504,7 +549,10 @@ def plot_heatsolve(x,t,U,title,units=['m','s'],**kwargs):
     '''
 
     #Create and configure a figure & axes:
-    fig,ax=plt.subplots(1,1,figsize=(8,7))
+    if ax is None:
+        fig,ax=plt.subplots(1,1,figsize=(8,7))
+    else:
+        fig = ax.figure  # get parent figure
 
     #check out for kwargs default
     if 'cmap' not in kwargs:
@@ -519,7 +567,6 @@ def plot_heatsolve(x,t,U,title,units=['m','s'],**kwargs):
     ax.set_xlabel(f'Time (${units[1]}$)')
     ax.set_ylabel(f'Position (${units[0]}$)')
     ax.set_title(title)
-    plt.show()
 
     return fig,ax,cbar
 
