@@ -566,6 +566,24 @@ def plot_heatsolve(x,t,U,title,units=['m','s'], ax=None,**kwargs):
 
     return fig,ax,cbar
 
+def test_plot_heatsolve_ax(**kwargs):
+    '''
+    This function test the additional "ax" variable that was being added to the plot_heatsolve() function.
+
+    The test have two parts:
+     1. Test a case without defining axis
+     2. Test a case where subplots are needed and axis needs to be defined
+    '''
+
+    # 1. Test a case without defining axis
+    t, x, U = solve_heat(**kwargs)
+    plot_heatsolve(t,x,U,title='Test Plotting Function without Axis Variable')
+
+    # 2. Test a case where subplots are needed and axis needs to be defined
+    fig2, (ax1,ax2) = plt.subplots(1, 2, figsize=(10, 8))
+    plot_heatsolve(t,x,U,title='Test Plotting Function with Axis Variable',ax=ax2,**kwargs)
+    plt.show()
+
 
 
 '''
