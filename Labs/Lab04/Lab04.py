@@ -81,7 +81,7 @@ def forest_fire(isize=3,jsize=3,nstep=4):
         for i in range(isize):
             for j in range(jsize):
                 if forest[k,i,j]==3:
-                    forest=spreading_fire(forest,(k,i,j),1.)
+                    forest=spreading_fire(forest,(k,i,j),0.5)
                     forest[k+1,i,j]=1 
 
     return forest
