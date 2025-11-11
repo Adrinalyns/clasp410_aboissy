@@ -8,19 +8,18 @@ permafrost temperature variation in Kangerlussuaq, Greenland. It includes functi
 and test functions to verify the the code.
 
 TO REPRODUCE THE VALUES AND PLOTS IN MY REPORT, DO THIS:
-To obtain the plots for all different questions:
 •	run lab03.py
 •	plt.ion()
-•	question1() : to validate the solver and obtain the plot, in Q1
-•	question2() : to obtain all the plots used for answering Q2
-•	question3() : to obtain all the plots used for answering Q3
+•	question_1() : to validate the solver and obtain the plot, in Q1
+•	question_2() : to obtain all the plots used for answering Q2
+•	question_3() : to obtain all the plots used for answering Q3
 
 
 '''
 
 import matplotlib.pyplot as plt
 import numpy as np
-plt.style.use('seaborn-darkgrid')
+plt.style.use('seaborn-v0_8-darkgrid')
 
 S_IN_YEAR=365.25*24*3600
 S_IN_DAY=24*3600
@@ -298,8 +297,11 @@ def test_solve_heat():
             #Change the maximum error found if the current error is higher
             if abs(U[i,j]-sol10p3[i,j])>max_error:
                 max_error=abs(U[i,j]-sol10p3[i,j])
-
+    me=np.abs(U-sol10p3).max()
+    print(me,max_error)
+    print(np.abs(U-sol10p3))
     print(f'Test passed ! \n the calculated solution is close to the known solution with a maximum error of {max_error:.6f} (max allowed is {max_error_allowed})')
+
 
 def question_1():
     '''
