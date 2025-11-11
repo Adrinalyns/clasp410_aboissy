@@ -105,6 +105,7 @@ def optimized_forest_fire(isize=3,jsize=3,nstep=4,p_spread=p_spread,p_ignite=p_i
 
     return forest
 
+
 def forest_fire(isize=3,jsize=3,nstep=4):
     '''
     create a forest fire
@@ -127,6 +128,7 @@ def forest_fire(isize=3,jsize=3,nstep=4):
 
     return forest
 
+
 def plot_forest2d(forest_in,itime=0):
     '''
     '''
@@ -146,7 +148,8 @@ def plot_forest2d(forest_in,itime=0):
     ax.set_ylabel('Northward ($km$) $\\longrightarrow$')
     ax.set_title(f'The Seven Acre wood at T={itime:03d}')
 
-    return fig
+    return fig,ax
+
 
 def make_all_2dplots(forest_in,folder='Labs/Lab04/results/'):
     '''
@@ -161,7 +164,7 @@ def make_all_2dplots(forest_in,folder='Labs/Lab04/results/'):
     #make a bunch of plots
     ntime,nx,ny=forest_in.shape
     for i in range(ntime):
-        fig = plot_forest2d(forest_in,itime=i)
+        fig,ax = plot_forest2d(forest_in,itime=i)
         fig.savefig(f"{folder}/forest_i{i:04d}.png")
         plt.close('all')
 
@@ -190,6 +193,7 @@ def plot_progression(forest):
     ax.legend()
     plt.show()
     return fig,ax
+
 
 def test_neighbors(nx,ny):
     forest=np.zeros((1,nx,ny))
@@ -220,6 +224,164 @@ def test_neighbors(nx,ny):
     neighbors_on_fire_convolve= convolve2d(fire_front, kernel, mode='same', boundary='fill', fillvalue=0)
     print(neighbors_on_fire_convolve)
     print(np.array_equal(neighbors_on_fire, neighbors_on_fire_convolve))
+
+
+def question_1():
+    '''
+    Answer question 1 of Lab4. Validation of the forest fire model in two examples:
+    - 3x3 frid with an initial fire in the center
+    - 8x3 grid with an initial fire in the center
+    '''
+    #First example: 3x3 forest with initial fire in center
+    forest1=optimized_forest_fire(isize=3,jsize=3,nstep=4,p_spread=1.0)
+    fig,((ax11,ax12),(ax21,ax22))=plt.subplots(2,2, figsize=(7,8))
+    fig.suptitle('3x3 Forest: central ignition and sure propagation', fontsize=16)
+    
+    #Forest at time 0
+    my_map0 = ax11.pcolor(forest1[0,:,:],vmin=1,vmax=3,cmap=forest_cmap)
+
+    cbar=plt.colorbar(my_map0,ax=ax11, shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
+    cbar.set_ticks([1,2,3])
+    cbar.set_ticklabels(['Bare/burned','Forested','Burning'])
+
+    #Invert y axis to match matrix orientation
+    ax11.invert_yaxis()
+    #Add labels and title
+    ax11.set_xlabel('Eastward($km$) $\\longrightarrow$')
+    ax11.set_ylabel('Northward ($km$) $\\longrightarrow$')
+    ax11.set_title(f'The Seven Acre wood at T=000')
+
+    #Forest at time 1
+    my_map1 = ax12.pcolor(forest1[1,:,:],vmin=1,vmax=3,cmap=forest_cmap)
+
+    cbar=plt.colorbar(my_map1,ax=ax12, shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
+    cbar.set_ticks([1,2,3])
+    cbar.set_ticklabels(['Bare/burned','Forested','Burning'])
+
+    #Invert y axis to match matrix orientation
+    ax12.invert_yaxis()
+    #Add labels and title
+    ax12.set_xlabel('Eastward($km$) $\\longrightarrow$')
+    ax12.set_ylabel('Northward ($km$) $\\longrightarrow$')
+    ax12.set_title(f'The Seven Acre wood at T=001')
+
+    #Forest at time 2
+    my_map2 = ax21.pcolor(forest1[2,:,:],vmin=1,vmax=3,cmap=forest_cmap)
+
+    cbar=plt.colorbar(my_map2,ax=ax21, shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
+    cbar.set_ticks([1,2,3])
+    cbar.set_ticklabels(['Bare/burned','Forested','Burning'])
+
+    #Invert y axis to match matrix orientation
+    ax21.invert_yaxis()
+    #Add labels and title
+    ax21.set_xlabel('Eastward($km$) $\\longrightarrow$')
+    ax21.set_ylabel('Northward ($km$) $\\longrightarrow$')
+    ax21.set_title(f'The Seven Acre wood at T=002')
+
+    #Forest at time 3
+    my_map3 = ax22.pcolor(forest1[3,:,:],vmin=1,vmax=3,cmap=forest_cmap)
+
+    cbar=plt.colorbar(my_map3,ax=ax22, shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
+    cbar.set_ticks([1,2,3])
+    cbar.set_ticklabels(['Bare/burned','Forested','Burning'])
+
+    #Invert y axis to match matrix orientation
+    ax22.invert_yaxis()
+    #Add labels and title
+    ax22.set_xlabel('Eastward($km$) $\\longrightarrow$')
+    ax22.set_ylabel('Northward ($km$) $\\longrightarrow$')
+    ax22.set_title(f'The Seven Acre wood at T=003')
+
+
+    #Second example: 8x3 forest with initial fire in center
+    forest2=optimized_forest_fire(isize=3,jsize=6,nstep=6,p_spread=1.0)
+
+    fig2,((ax2_11,ax2_12,ax2_13),(ax2_21,ax2_22,ax2_23))=plt.subplots(2,3, figsize=(14,7.5))
+    fig2.suptitle('8x6 Forest: central ignition and sure propagation', fontsize=16)
+
+    #Forest at time 0
+    my_map0 = ax2_11.pcolor(forest2[0,:,:],vmin=1,vmax=3,cmap=forest_cmap)
+    cbar=plt.colorbar(my_map0,ax=ax2_11, shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
+    cbar.set_ticks([1,2,3])
+    cbar.set_ticklabels(['Bare/burned','Forested','Burning'])
+
+    #Invert y axis to match matrix orientation
+    ax2_11.invert_yaxis()
+    #Add labels and title
+    ax2_11.set_xlabel('Eastward($km$) $\\longrightarrow$')
+    ax2_11.set_ylabel('Northward ($km$) $\\longrightarrow$')
+    ax2_11.set_title(f'The Seven Acre wood at T=000')
+    #Forest at time 1
+    my_map1 = ax2_12.pcolor(forest2[1,:,:],vmin=1,vmax=3,cmap=forest_cmap)
+
+    cbar=plt.colorbar(my_map1,ax=ax2_12, shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
+    cbar.set_ticks([1,2,3])
+    cbar.set_ticklabels(['Bare/burned','Forested','Burning'])
+
+    #Invert y axis to match matrix orientation
+    ax2_12.invert_yaxis()
+    #Add labels and title
+    ax2_12.set_xlabel('Eastward($km$) $\\longrightarrow$')
+    ax2_12.set_ylabel('Northward ($km$) $\\longrightarrow$')
+    ax2_12.set_title(f'The Seven Acre wood at T=001')
+    #Forest at time 2
+    my_map2 = ax2_13.pcolor(forest2[2,:,:],vmin=1,vmax=3,cmap=forest_cmap)
+
+    cbar=plt.colorbar(my_map2,ax=ax2_13, shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
+    cbar.set_ticks([1,2,3])
+    cbar.set_ticklabels(['Bare/burned','Forested','Burning'])
+
+    #Invert y axis to match matrix orientation
+    ax2_13.invert_yaxis()
+    #Add labels and title
+    ax2_13.set_xlabel('Eastward($km$) $\\longrightarrow$')
+    ax2_13.set_ylabel('Northward ($km$) $\\longrightarrow$')
+    ax2_13.set_title(f'The Seven Acre wood at T=002')
+    #Forest at time 3
+    my_map3 = ax2_21.pcolor(forest2[3,:,:],vmin=1,vmax=3,cmap=forest_cmap)
+
+    cbar=plt.colorbar(my_map3,ax=ax2_21, shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
+    cbar.set_ticks([1,2,3])
+    cbar.set_ticklabels(['Bare/burned','Forested','Burning'])
+
+    #Invert y axis to match matrix orientation
+    ax2_21.invert_yaxis()
+    #Add labels and title
+    ax2_21.set_xlabel('Eastward($km$) $\\longrightarrow$')
+    ax2_21.set_ylabel('Northward ($km$) $\\longrightarrow$')
+    ax2_21.set_title(f'The Seven Acre wood at T=003')
+    #Forest at time 4
+    my_map4 = ax2_22.pcolor(forest2[4,:,:],vmin=1,vmax=3,cmap=forest_cmap)        
+
+    cbar=plt.colorbar(my_map4,ax=ax2_22, shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
+    cbar.set_ticks([1,2,3])
+    cbar.set_ticklabels(['Bare/burned','Forested','Burning'])
+
+    #Invert y axis to match matrix orientation
+    ax2_22.invert_yaxis()
+    #Add labels and title
+    ax2_22.set_xlabel('Eastward($km$) $\\longrightarrow$')
+    ax2_22.set_ylabel('Northward ($km$) $\\longrightarrow$')
+    ax2_22.set_title(f'The Seven Acre wood at T=004')
+    #Forest at time 5
+    my_map5 = ax2_23.pcolor(forest2[5,:,:],vmin=1,vmax=3,cmap=forest_cmap)        
+
+    cbar=plt.colorbar(my_map5,ax=ax2_23, shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
+    cbar.set_ticks([1,2,3])
+    cbar.set_ticklabels(['Bare/burned','Forested','Burning'])
+
+    #Invert y axis to match matrix orientation
+    ax2_23.invert_yaxis()
+    #Add labels and title
+    ax2_23.set_xlabel('Eastward($km$) $\\longrightarrow$')
+    ax2_23.set_ylabel('Northward ($km$) $\\longrightarrow$')
+    ax2_23.set_title(f'The Seven Acre wood at T=005')
+    
+
+
+    plt.show()
+
 
 def animate_forest_fire(folder='Labs/Lab04/results/', ntime=10, interval=500):
     '''
