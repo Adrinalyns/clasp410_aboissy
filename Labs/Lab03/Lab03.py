@@ -250,21 +250,20 @@ def test_solve_heat():
     the maximum error between the two solution is below 1e-3, if not an assertion error is raised.
     If the test is passed, a message is printed with the maximum error found.
     '''
-    c2=1
-    x_init=0
-    x_final=1
-    dx=0.2
-    t_init=0
-    t_final=0.2
-    dt=0.02
-    lowerbound = 0
-    upperbound = 0
 
+    params = dict(
+        c2=1.0,
+        x_init=0.0, x_final=1.0, dx=0.2,
+        t_init=0.0, t_final=0.2, dt=0.02,
+        lowerbound=0.0, upperbound=0.0,
+    )
+    
     #Solving the heat equation in the given situation with our solover function : solve_heat()
-    t,x,U=solve_heat(c2=c2,x_init=x_init,x_final=x_final,dx=dx,t_init=t_init,t_final=t_final,dt=dt,lowerbound=lowerbound,upperbound=upperbound)
+    x,t,U=solve_heat(**params)
 
     # Solution to problem 10.3 from fink/matthews as a nested list:
-    sol10p3 = [[0.000000, 0.640000, 0.960000, 0.960000, 0.640000, 0.000000],
+    # Convert to an array and transpose it to get correct ordering:
+    sol10p3 = np.array([[0.000000, 0.640000, 0.960000, 0.960000, 0.640000, 0.000000],
            [0.000000, 0.480000, 0.800000, 0.800000, 0.480000, 0.000000],
            [0.000000, 0.400000, 0.640000, 0.640000, 0.400000, 0.000000],
            [0.000000, 0.320000, 0.520000, 0.520000, 0.320000, 0.000000],
@@ -274,14 +273,13 @@ def test_solve_heat():
            [0.000000, 0.137500, 0.222500, 0.222500, 0.137500, 0.000000],
            [0.000000, 0.111250, 0.180000, 0.180000, 0.111250, 0.000000],
            [0.000000, 0.090000, 0.145625, 0.145625, 0.090000, 0.000000],
-           [0.000000, 0.072812, 0.117813, 0.117813, 0.072812, 0.000000]]
-
-    # Convert to an array and transpose it to get correct ordering:
-    sol10p3 = np.array(sol10p3).transpose()
+           [0.000000, 0.072812, 0.117813, 0.117813, 0.072812, 0.000000]],dtype=float).T
 
     # Check that our solution is close to the known solution:
-    #Verify that the two matrices have the same shapes
-    assert (U.shape == sol10p3.shape), f'the shape of the solution is incorrect, it is {U.shape} while it should be {sol10p3.shape}'
+    # Verify that the two matrices have the same shapes
+    assert U.shape == sol10p3.shape, (
+    f"Shape mismatch: got {U.shape}, expected {sol10p3.shape}"
+    )
     N,M=U.shape
 
     max_error_allowed=1e-3 #Maximum error allowed to pass the test
@@ -306,25 +304,66 @@ def test_solve_heat():
 def question_1():
     '''
     This function answers question 1.
-    It test if the solve_heat function gives the ewpected result in a certain case,
-    when we know the expected result.
-    Then, it plot the result.
+    It utilize test_solve_heat() to test if the solve_heat() function gives the expected result in certain cases. If so, this function will generate a plot of both reference and compuated solution for comparison.
     '''
-    
+
+    #--------- Calculated solutions
     test_solve_heat()
+    params = dict(
+        c2=1.0,
+        x_init=0.0, x_final=1.0, dx=0.2,
+        t_init=0.0, t_final=0.2, dt=0.02,
+        lowerbound=0.0, upperbound=0.0,
+    )
+    x,t,U=solve_heat(**params)
+    
+    #--------- Reference solutions
+    sol10p3 = np.array([[0.000000, 0.640000, 0.960000, 0.960000, 0.640000, 0.000000],
+           [0.000000, 0.480000, 0.800000, 0.800000, 0.480000, 0.000000],
+           [0.000000, 0.400000, 0.640000, 0.640000, 0.400000, 0.000000],
+           [0.000000, 0.320000, 0.520000, 0.520000, 0.320000, 0.000000],
+           [0.000000, 0.260000, 0.420000, 0.420000, 0.260000, 0.000000],
+           [0.000000, 0.210000, 0.340000, 0.340000, 0.210000, 0.000000],
+           [0.000000, 0.170000, 0.275000, 0.275000, 0.170000, 0.000000],
+           [0.000000, 0.137500, 0.222500, 0.222500, 0.137500, 0.000000],
+           [0.000000, 0.111250, 0.180000, 0.180000, 0.111250, 0.000000],
+           [0.000000, 0.090000, 0.145625, 0.145625, 0.090000, 0.000000],
+           [0.000000, 0.072812, 0.117813, 0.117813, 0.072812, 0.000000]], dtype=float).T
+    x_p = np.arange(params['x_init'], params['x_final'] + params['dx'], params['dx'])
+    t_p = np.arange(params['t_init'], params['t_final'] + params['dt'], params['dt'])
+    
+    #--------- Plots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
+    # --- Heatmap 1 for reference solution
+    plot_heatsolve(x_p,t_p,sol10p3, "Reference Solution", ax=ax1)
+    ax1.set_xlabel("Time")
+    ax1.set_ylabel("Position")
+    # --- Add labels in grid cells
+    for i in range(sol10p3.shape[0]):
+        for j in range(sol10p3.shape[1]):
+            ax1.text(
+                t_p[j], x_p[i], f"{sol10p3[i,j]:.3f}",
+                ha='center', va='center',
+                color='blue', fontsize=10
+            )
+    plt.rcParams.update({'font.size': 12})
 
-    c2=1
-    x_init=0
-    x_final=1
-    dx=0.2
-    t_init=0
-    t_final=0.2
-    dt=0.02
-    lowerbound = 0
-    upperbound = 0
+    # --- Heatmap #2 for computed solution
+    plot_heatsolve(x,t,U,'Computed Solution',ax=ax2)
+    ax2.set_xlabel("Time")
+    ax2.set_ylabel("Position")
+    # --- Add labels in grid cells
+    for i in range(U.shape[0]):
+        for j in range(U.shape[1]):
+            ax2.text(
+                t[j], x[i], f"{U[i,j]:.3f}",
+                ha='center', va='center',
+                color='blue', fontsize=10
+            )
+    plt.rcParams.update({'font.size': 12})
 
-    x,t,U=solve_heat(c2=c2,x_init=x_init,x_final=x_final,dx=dx,t_init=t_init,t_final=t_final,dt=dt,lowerbound=lowerbound,upperbound=upperbound)
-    plot_heatsolve(x,t,U,'Temperature diffusion in a bar with Dirichlet boundary conditions')
+    plt.tight_layout()
+    plt.show()
 
 def question_2():
     '''
@@ -479,7 +518,7 @@ def Kangerlussuaq_T_variation(nb_years,temp_surface=temp_kanger,complementary_ti
     return x,t,U
 
     
-def plot_heatsolve(x,t,U,title,units=['m','s'],**kwargs):
+def plot_heatsolve(x,t,U,title,units=['m','s'], ax=None,**kwargs):
     '''
     Plot the 2D solution for the 'solve_heat' function
 
@@ -493,6 +532,9 @@ def plot_heatsolve(x,t,U,title,units=['m','s'],**kwargs):
         The solution of the heat equation, size is nSpace x nTime
     title: string
         the title for the plot
+    ax: axis
+        Plotting axis, default to none. If no axis is provided, create a new figure and axis.
+
     
     Returns:
     ----------
@@ -505,7 +547,10 @@ def plot_heatsolve(x,t,U,title,units=['m','s'],**kwargs):
     '''
 
     #Create and configure a figure & axes:
-    fig,ax=plt.subplots(1,1,figsize=(8,7))
+    if ax is None:
+        fig,ax=plt.subplots(1,1,figsize=(8,7))
+    else:
+        fig = ax.figure  # get parent figure
 
     #check out for kwargs default
     if 'cmap' not in kwargs:
@@ -520,9 +565,26 @@ def plot_heatsolve(x,t,U,title,units=['m','s'],**kwargs):
     ax.set_xlabel(f'Time (${units[1]}$)')
     ax.set_ylabel(f'Position (${units[0]}$)')
     ax.set_title(title)
-    plt.show()
 
     return fig,ax,cbar
+
+def test_plot_heatsolve_ax(**kwargs):
+    '''
+    This function test the additional "ax" variable that was being added to the plot_heatsolve() function.
+
+    The test have two parts:
+     1. Test a case without defining axis
+     2. Test a case where subplots are needed and axis needs to be defined
+    '''
+
+    # 1. Test a case without defining axis
+    t, x, U = solve_heat(**kwargs)
+    plot_heatsolve(t,x,U,title='Test Plotting Function without Axis Variable')
+
+    # 2. Test a case where subplots are needed and axis needs to be defined
+    fig2, (ax1,ax2) = plt.subplots(1, 2, figsize=(10, 8))
+    plot_heatsolve(t,x,U,title='Test Plotting Function with Axis Variable',ax=ax2,**kwargs)
+    plt.show()
 
 
 
