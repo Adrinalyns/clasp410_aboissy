@@ -16,12 +16,18 @@ TO REPRODUCE THE VALUES AND PLOTS IN MY REPORT, DO THIS:
 import numpy as np
 from numpy import random
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+
+#Select colors at : https://www.w3schools.com/colors/colors_picker.asp 
+
+colors= ['tan', 'forestgreen','crimson']
+forest_cmap = ListedColormap(colors)
 
 nstep=10
 ny=10
 nx=10
 forest=np.zeros((nstep,ny,nx),dtype=int) +2
-
+"""
 propagation_front=[]
 while len(propagation_front)>0:
     
@@ -29,6 +35,8 @@ while len(propagation_front)>0:
         forest=spreading_fire(forest,grid_on_fire)
         forest[grid_on_fire]=1
         #remove the cell from propagation front
+"""
+
 
 def spreading_fire(forest,grid_on_fire,prob_fire):
     '''
@@ -73,7 +81,6 @@ def forest_fire(isize=3,jsize=3,nstep=4):
 
     #Set initial fire to center [NEED TO BE CHANGED LATER]
     forest[0,isize//2,jsize//2]=3
-    print(forest)
 
     for k in range(0,nstep-1):
         #Assume the next time step is the same as current
@@ -81,7 +88,45 @@ def forest_fire(isize=3,jsize=3,nstep=4):
         for i in range(isize):
             for j in range(jsize):
                 if forest[k,i,j]==3:
-                    forest=spreading_fire(forest,(k,i,j),0.5)
+                    forest=spreading_fire(forest,(k,i,j),.5)
                     forest[k+1,i,j]=1 
 
     return forest
+
+def plot_forest2d(forest_in,itime=0):
+    '''
+    '''
+    fig, ax = plt.subplots(1,1, figsize=(6,8))
+    fig
+
+    my_map = ax.pcolor(forest_in[itime,:,:],vmin=1,vmax=3,cmap=forest_cmap)
+
+    cbar=plt.colorbar(my_map,ax=ax, shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
+    cbar.set_ticks([1,2,3])
+    cbar.set_ticklabels(['Bare/burned','Forested','Burning'])
+
+    #Invert y axis to match matrix orientation
+    ax.invert_yaxis()
+    #Add labels and title
+    ax.set_xlabel('Eastward($km$) $\\longrightarrow$')
+    ax.set_ylabel('Northward ($km$) $\\longrightarrow$')
+    ax.set_title(f'The Seven Acre wood at T={itime:03d}')
+
+    return fig
+
+def make_all_2dplots(forest_in,folder='Labs/Lab04/results/'):
+    '''
+    Make all 2D plots for all time steps
+    '''
+    import os
+
+    #Check if folder exists, if not make it
+    if not os.path.exists(folder):
+        os.mkdir(folder)
+    
+    #make a bunch of plots
+    ntime,nx,ny=forest_in.shape
+    for i in range(ntime):
+        fig = plot_forest2d(forest_in,itime=i)
+        fig.savefig(f"{folder}/forest_i{i:04d}.png")
+        plt.close('all')
