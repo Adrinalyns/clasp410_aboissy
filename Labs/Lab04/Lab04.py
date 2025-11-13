@@ -26,38 +26,6 @@ colors= ['tan', 'forestgreen','crimson']
 forest_cmap = ListedColormap(colors)
 
 
-def spreading_fire(forest,grid_on_fire,p_spread=0.5):
-    '''
-    Try to spread the fire on the 4 adjacent cells if they are inside the grid
-    '''
-    k,i,j=grid_on_fire
-    nstep,isize,jsize=forest.shape
-
-    rd_north=random.rand()
-    rd_south=random.rand()
-    rd_west=random.rand()
-    rd_east=random.rand()
-
-    #Should we spread fire on North
-    if ((rd_north <=prob_fire) and (i>0) and (forest[k,i-1,j]==2)):
-        forest[k+1,i-1,j]=3
-
-    #Should we spread fire on South
-    if ( rd_south <=prob_fire and (i<isize-1) and (forest[k,i+1,j]==2)):
-        forest[k+1,i+1,j]=3
-
-    #Should we spread fire on West
-    if ( rd_west <=prob_fire and (j>0) and (forest[k,i,j-1]==2)):
-        forest[k+1,i,j-1]=3
-
-    #Should we spread fire on East
-    if ( rd_east <=prob_fire and (j<jsize-1) and (forest[k,i,j+1]==2)):
-        forest[k+1,i,j+1]=3
-
-    return forest
-    
-
-
 def optimized_forest_fire(isize=3,jsize=3,nstep=4,p_spread=1,p_ignite=0.,
                                         p_bare=0.,random_fire=False,random_bare=False):
     '''
