@@ -25,13 +25,8 @@ plt.style.use('seaborn-v0_8-darkgrid')
 colors= ['tan', 'forestgreen','crimson']
 forest_cmap = ListedColormap(colors)
 
-p_spread=0.5
-p_ignite=0.05
-p_bare=0.2
 
-
-
-def spreading_fire(forest,grid_on_fire,p_spread=p_spread):
+def spreading_fire(forest,grid_on_fire,p_spread=0.5):
     '''
     Try to spread the fire on the 4 adjacent cells if they are inside the grid
     '''
@@ -63,8 +58,8 @@ def spreading_fire(forest,grid_on_fire,p_spread=p_spread):
     
 
 
-def optimized_forest_fire(isize=3,jsize=3,nstep=4,p_spread=p_spread,p_ignite=p_ignite,
-                                        p_bare=p_bare,random_fire=False,random_bare=False):
+def optimized_forest_fire(isize=3,jsize=3,nstep=4,p_spread=1,p_ignite=0.,
+                                        p_bare=0.,random_fire=False,random_bare=False):
     '''
     create a forest fire
     '''
@@ -106,7 +101,7 @@ def optimized_forest_fire(isize=3,jsize=3,nstep=4,p_spread=p_spread,p_ignite=p_i
     return forest
 
 
-def forest_fire(isize=3,jsize=3,nstep=4):
+def forest_fire(isize=3,jsize=3,nstep=4,p_spread=1.):
     '''
     create a forest fire
     '''
@@ -122,9 +117,29 @@ def forest_fire(isize=3,jsize=3,nstep=4):
         for i in range(isize):
             for j in range(jsize):
                 if forest[k,i,j]==3:
-                    forest=spreading_fire(forest,(k,i,j))
-                    forest[k+1,i,j]=1 
+                    rd_north=random.rand()
+                    rd_south=random.rand()
+                    rd_west=random.rand()
+                    rd_east=random.rand()
 
+                    #Should we spread fire on North
+                    if ((rd_north <=p_spread) and (i>0) and (forest[k,i-1,j]==2)):
+                        forest[k+1,i-1,j]=3
+
+                    #Should we spread fire on South
+                    if ( rd_south <=p_spread and (i<isize-1) and (forest[k,i+1,j]==2)):
+                        forest[k+1,i+1,j]=3
+
+                    #Should we spread fire on West
+                    if ( rd_west <=p_spread and (j>0) and (forest[k,i,j-1]==2)):
+                        forest[k+1,i,j-1]=3
+
+                    #Should we spread fire on East
+                    if ( rd_east <=p_spread and (j<jsize-1) and (forest[k,i,j+1]==2)):
+                        forest[k+1,i,j+1]=3
+                    
+                    #The burning cell becomes bare/burned
+                    forest[k+1,i,j]=1 
 
     return forest
 
@@ -151,6 +166,37 @@ def plot_forest2d(forest_in,itime=0):
     return fig,ax
 
 
+def results(initial_value=0,final_value=1, nb_values=11, variable='p_spread',solver=optimized_forest_fire,**kwargs):
+    '''
+    '''
+    npoints=kwargs['isize']*kwargs['jsize']
+    
+    param_values=np.linspace(initial_value,final_value,nb_values)
+    initial_fires=np.zeros(nb_values)
+    initial_forests=np.zeros(nb_values)
+    final_bare_wrt_param=np.zeros(nb_values)
+    final_forest_wrt_param=np.zeros(nb_values)
+
+
+    for index,param in enumerate(param_values):
+        kwargs[variable]=param
+        result=solver(**kwargs)
+
+        loc = result[0,:,:] == 3
+        initial_fires[index] = 100 * loc.sum()/npoints
+
+        loc = result[0,:,:] == 2
+        initial_forests[index] = 100 * loc.sum()/npoints
+        
+        loc = result[-1,:,:] == 1
+        final_bare_wrt_param[index] = 100 * loc.sum()/npoints
+
+        loc = result[-1,:,:] == 2
+        final_forest_wrt_param[index] = 100 * loc.sum()/npoints
+
+    return param_values, initial_fires, initial_forests, final_bare_wrt_param, final_forest_wrt_param
+        
+
 def make_all_2dplots(forest_in,folder='Labs/Lab04/results/'):
     '''
     Make all 2D plots for all time steps
@@ -169,7 +215,7 @@ def make_all_2dplots(forest_in,folder='Labs/Lab04/results/'):
         plt.close('all')
 
     
-def plot_progression(forest):
+def plot_progression(forest,additional_title=''):
     '''Calculate the time dynamics of a forest fire and plot them.'''
 
     # Get total number of points:
@@ -189,7 +235,7 @@ def plot_progression(forest):
     ax.plot(bare, label='Bare/Burnt')
     ax.set_xlabel('Time (arbitrary units)')
     ax.set_ylabel('Percent Total Forest')
-    ax.set_title('Forest Fire Progression Over Time')
+    ax.set_title(f'Forest Fire Progression Over Time' + additional_title)
     ax.legend()
     plt.show()
     return fig,ax
@@ -381,6 +427,40 @@ def question_1():
 
 
     plt.show()
+
+
+def question_2():
+
+    #Varying p_spread from 0 to 1
+    kwargs=dict(isize=20,jsize=20,nstep=30,p_spread=0.5,p_ignite=0.02,random_fire=True)
+
+    p_spread_values, initial_fires_wrt_p_spread, initial_forests_wrt_p_spread, final_bare_wrt_p_spread, final_forest_wrt_p_spread = results(**kwargs)
+    kwargs['random_bare']=True
+    p_ignite_values, initial_fires_wrt_p_ignite, initial_forests_wrt_p_ignite, final_bare_wrt_p_ignite, final_forest_wrt_p_ignite = results(variable='p_bare',**kwargs)
+
+    fig,ax=plt.subplots(1,2, figsize=(12,6))
+    ax[0].plot(p_spread_values, final_bare_wrt_p_spread,label='Final Bare/burned',color='tan')
+    ax[0].plot(p_spread_values, final_forest_wrt_p_spread,label='Final Forest',color='forestgreen')
+    ax[0].plot(p_spread_values, initial_forests_wrt_p_spread, label='Initial percentage of forested cells (%)', color='darkgreen', linestyle='--')
+    ax[0].plot(p_spread_values, initial_fires_wrt_p_spread, label='Initial percentage of burning cells (%)', color='crimson', linestyle='--')
+    ax[0].set_xlabel('Spread Probability')
+    ax[0].set_ylabel(f'Percentage of the grid (%)')
+    ax[0].set_title(f'Burning of the forest depends on the spread probability')
+    ax[0].legend()
+
+    ax[1].plot(p_ignite_values*100, final_bare_wrt_p_ignite,label='Final Bare/burned',color='tan')
+    ax[1].plot(p_ignite_values*100, final_forest_wrt_p_ignite,label='Final Forest',color='forestgreen')
+    ax[1].plot(p_ignite_values*100, initial_forests_wrt_p_ignite, label='Initial percentage of forested cells (%)', color='darkgreen', linestyle='--')
+    ax[1].plot(p_ignite_values*100, initial_fires_wrt_p_ignite, label='Initial percentage of burning cells (%)', color='crimson', linestyle='--')   
+    ax[1].set_xlabel('Initial percentage of bare cells (%)')
+    ax[1].set_ylabel(f'Percentage of the grid (%)')
+    ax[1].set_title(f'Burning of the forest depends on initial percentage of bare cells')
+    ax[1].legend()
+
+    plt.show()
+
+
+    
 
 
 def animate_forest_fire(folder='Labs/Lab04/results/', ntime=10, interval=500):
