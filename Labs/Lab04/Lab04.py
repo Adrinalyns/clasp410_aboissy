@@ -22,51 +22,12 @@ plt.style.use('seaborn-v0_8-darkgrid')
 
 #Select colors at : https://www.w3schools.com/colors/colors_picker.asp 
 
-colors= ['tan', 'forestgreen','crimson']
-forest_cmap = ListedColormap(colors)
+colors_forest= ['tan', 'forestgreen','crimson']
+forest_cmap = ListedColormap(colors_forest)
 
+colors_disease= ['black', 'deepskyblue','mediumseagreen','orangered']
+disease_cmap = ListedColormap(colors_disease)
 
-def optimized_forest_fire(isize=3,jsize=3,nstep=4,p_spread=1,p_ignite=0.,
-                                        p_bare=0.,random_fire=False,random_bare=False):
-    '''
-    create a forest fire
-    '''
-    #Creating a forest and making all spots have trees
-    forest=np.zeros((nstep,isize,jsize),dtype=int) +2
-    if random_bare:
-        bare_spots=random.rand(isize,jsize)<=p_bare
-        forest[0,bare_spots]=1 
-
-    if random_fire:
-        fire_spots=random.rand(isize,jsize)<=p_ignite
-        forest[0,fire_spots]=3
-    else:
-        #Set the initial fire only to center
-        forest[0,isize//2,jsize//2]=3
-
-    for k in range(0,nstep-1):
-        #Assume the next time step is the same as current
-        forest[k+1,:,:]=forest[k,:,:]
-        fire_front=forest[k,:,:]==3
-        trees=forest[k,:,:]==2
-
-        #counting for each cell the number of neighbors on fire using convolution
-        kernel = np.array([[0,1,0],
-                           [1,0,1],
-                           [0,1,0]])
-
-        neighbors_on_fire= convolve2d(fire_front, kernel, mode='same', boundary='fill', fillvalue=0)
-
-        #computing the probability of a cell to catch fire based on the number of its neighbors on fire
-        probs_to_propagate= 1 - (1-p_spread)**neighbors_on_fire
-        #rolling a dice for all cells
-        probs=random.rand(isize,jsize)
-
-        forest[k+1,trees & (probs <= probs_to_propagate)]=3  #Set trees on fire based on their respective probability to catch fire
-        forest[k+1,fire_front]=1  #Burn the current fire spots
-
-
-    return forest
 
 
 def forest_fire(isize=3,jsize=3,nstep=4,p_spread=1.):
@@ -112,11 +73,61 @@ def forest_fire(isize=3,jsize=3,nstep=4,p_spread=1.):
     return forest
 
 
+
+def forest_disease_solver(isize=3,jsize=3,nstep=4,p_spread=1.,p_ignite=None,
+                            p_bare=None,p_fatal=0.,debug=False):
+    '''
+    create a forest fire
+    '''
+    #Creating a forest and making all spots have trees
+    forest=np.zeros((nstep,isize,jsize),dtype=int) +2
+    if p_bare is not None:
+        bare_spots=random.rand(isize,jsize)<=p_bare
+        forest[0,bare_spots]=1 
+
+    if p_ignite is not None:
+        fire_spots=random.rand(isize,jsize)<=p_ignite
+        forest[0,fire_spots]=3
+    else:
+        #Set the initial fire only to center
+        forest[0,isize//2,jsize//2]=3
+
+    for k in range(0,nstep-1):
+        #Assume the next time step is the same as current
+        forest[k+1,:,:]=forest[k,:,:]
+        fire_front=forest[k,:,:]==3
+        trees=forest[k,:,:]==2
+
+        #counting for each cell the number of neighbors on fire using convolution
+        kernel = np.array([[0,1,0],
+                           [1,0,1],
+                           [0,1,0]])
+
+        neighbors_on_fire= convolve2d(fire_front, kernel, mode='same', boundary='fill', fillvalue=0)
+
+        #computing the probability of a cell to catch fire based on the number of its neighbors on fire
+        probs_to_propagate= 1 - (1-p_spread)**neighbors_on_fire
+        #rolling a dice for all cells
+        probs=random.rand(isize,jsize)
+
+        forest[k+1,trees & (probs <= probs_to_propagate)]=3  #Set trees on fire based on their respective probability to catch fire
+        fatal_probability=random.rand(isize,jsize)
+        forest[k+1,fire_front]=1  #Burn the current fire spots/everyone that was infected recovers
+        forest[k+1,fire_front & (fatal_probability < p_fatal)]=0  #Some of the people that were infected finally die
+        
+        if debug:
+            #Let's verify that when using the solver to solve forest fire, no cell is marked as 0 (dead)
+            n_dead_cells= np.sum(forest[k+1,:,:]==0)
+            if n_dead_cells>0:
+                print(f"Debug info: At time step {k+1}, there are {n_dead_cells} dead cells in the forest.")
+    return forest
+
+
+
 def plot_forest2d(forest_in,itime=0):
     '''
     '''
     fig, ax = plt.subplots(1,1, figsize=(6,8))
-    fig
 
     my_map = ax.pcolor(forest_in[itime,:,:],vmin=1,vmax=3,cmap=forest_cmap)
 
@@ -133,8 +144,28 @@ def plot_forest2d(forest_in,itime=0):
 
     return fig,ax
 
+def plot_disease2d(grid_in,itime=0):
+    '''
+    '''
+    fig, ax = plt.subplots(1,1, figsize=(6,8))
 
-def results(initial_value=0,final_value=1, nb_values=11, variable='p_spread',solver=optimized_forest_fire,**kwargs):
+    my_map = ax.pcolor(grid_in[itime,:,:],vmin=0,vmax=3,cmap=disease_cmap)
+
+    cbar=plt.colorbar(my_map,ax=ax, shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
+    cbar.set_ticks([0,1,2,3])
+    cbar.set_ticklabels(['Dead','Immune','Healthy','Infected'])
+
+    #Invert y axis to match matrix orientation
+    ax.invert_yaxis()
+    #Add labels and title
+    ax.set_xlabel('Eastward(persons) $\\longrightarrow$')
+    ax.set_ylabel('Northward (persons) $\\longrightarrow$')
+    ax.set_title(f'The covid Party at t={itime:03d}')
+
+    return fig,ax
+
+
+def results(initial_value=0,final_value=1, nb_values=11, variable='p_spread',solver=forest_disease_solver,**kwargs):
     '''
     '''
     npoints=kwargs['isize']*kwargs['jsize']
@@ -165,7 +196,7 @@ def results(initial_value=0,final_value=1, nb_values=11, variable='p_spread',sol
     return param_values, initial_fires, initial_forests, final_bare_wrt_param, final_forest_wrt_param
         
 
-def make_all_2dplots(forest_in,folder='Labs/Lab04/results/'):
+def make_all_2dplots(forest_in,folder='Labs/Lab04/results/',plot_function=plot_forest2d):
     '''
     Make all 2D plots for all time steps
     '''
@@ -178,7 +209,7 @@ def make_all_2dplots(forest_in,folder='Labs/Lab04/results/'):
     #make a bunch of plots
     ntime,nx,ny=forest_in.shape
     for i in range(ntime):
-        fig,ax = plot_forest2d(forest_in,itime=i)
+        fig,ax = plot_function(forest_in,itime=i)
         fig.savefig(f"{folder}/forest_i{i:04d}.png")
         plt.close('all')
 
@@ -247,7 +278,7 @@ def question_1():
     - 8x3 grid with an initial fire in the center
     '''
     #First example: 3x3 forest with initial fire in center
-    forest1=optimized_forest_fire(isize=3,jsize=3,nstep=4,p_spread=1.0)
+    forest1=forest_disease_solver(isize=3,jsize=3,nstep=4,p_spread=1.0)
     fig,((ax11,ax12),(ax21,ax22))=plt.subplots(2,2, figsize=(7,8))
     fig.suptitle('3x3 Forest: central ignition and sure propagation', fontsize=16)
     
@@ -309,7 +340,7 @@ def question_1():
 
 
     #Second example: 8x3 forest with initial fire in center
-    forest2=optimized_forest_fire(isize=3,jsize=6,nstep=6,p_spread=1.0)
+    forest2=forest_disease_solver(isize=3,jsize=6,nstep=6,p_spread=1.0)
 
     fig2,((ax2_11,ax2_12,ax2_13),(ax2_21,ax2_22,ax2_23))=plt.subplots(2,3, figsize=(14,7.5))
     fig2.suptitle('8x6 Forest: central ignition and sure propagation', fontsize=16)
@@ -400,10 +431,9 @@ def question_1():
 def question_2():
 
     #Varying p_spread from 0 to 1
-    kwargs=dict(isize=20,jsize=20,nstep=30,p_spread=0.5,p_ignite=0.02,random_fire=True)
+    kwargs=dict(isize=20,jsize=20,nstep=30,p_spread=0.5,p_ignite=0.02)
 
     p_spread_values, initial_fires_wrt_p_spread, initial_forests_wrt_p_spread, final_bare_wrt_p_spread, final_forest_wrt_p_spread = results(**kwargs)
-    kwargs['random_bare']=True
     p_ignite_values, initial_fires_wrt_p_ignite, initial_forests_wrt_p_ignite, final_bare_wrt_p_ignite, final_forest_wrt_p_ignite = results(variable='p_bare',**kwargs)
 
     fig,ax=plt.subplots(1,2, figsize=(12,6))
