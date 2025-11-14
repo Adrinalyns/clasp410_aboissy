@@ -30,97 +30,54 @@ disease_cmap = ListedColormap(colors_disease)
 
 
 
-def forest_fire(isize=3,jsize=3,nstep=4,p_spread=1.):
-    '''
-    create a forest fire
-    '''
-    #Creating a forest and making all spots have trees
-    forest=np.zeros((nstep,isize,jsize),dtype=int) +2
-
-    #Set initial fire to center [NEED TO BE CHANGED LATER]
-    forest[0,isize//2,jsize//2]=3
-
-    for k in range(0,nstep-1):
-        #Assume the next time step is the same as current
-        forest[k+1,:,:]=forest[k,:,:]
-        for i in range(isize):
-            for j in range(jsize):
-                if forest[k,i,j]==3:
-                    rd_north=random.rand()
-                    rd_south=random.rand()
-                    rd_west=random.rand()
-                    rd_east=random.rand()
-
-                    #Should we spread fire on North
-                    if ((rd_north <=p_spread) and (i>0) and (forest[k,i-1,j]==2)):
-                        forest[k+1,i-1,j]=3
-
-                    #Should we spread fire on South
-                    if ( rd_south <=p_spread and (i<isize-1) and (forest[k,i+1,j]==2)):
-                        forest[k+1,i+1,j]=3
-
-                    #Should we spread fire on West
-                    if ( rd_west <=p_spread and (j>0) and (forest[k,i,j-1]==2)):
-                        forest[k+1,i,j-1]=3
-
-                    #Should we spread fire on East
-                    if ( rd_east <=p_spread and (j<jsize-1) and (forest[k,i,j+1]==2)):
-                        forest[k+1,i,j+1]=3
-                    
-                    #The burning cell becomes bare/burned
-                    forest[k+1,i,j]=1 
-
-    return forest
-
-
-
 def forest_disease_solver(isize=3,jsize=3,nstep=4,p_spread=1.,p_ignite=None,
                             p_bare=None,p_fatal=0.,debug=False):
     '''
-    create a forest fire
+    create a grid
     '''
-    #Creating a forest and making all spots have trees
-    forest=np.zeros((nstep,isize,jsize),dtype=int) +2
+    #Creating a forest/persons grid and making all spots have trees
+    grid=np.zeros((nstep,isize,jsize),dtype=int) +2
+
     if p_bare is not None:
         bare_spots=random.rand(isize,jsize)<=p_bare
-        forest[0,bare_spots]=1 
+        grid[0,bare_spots]=1 
 
     if p_ignite is not None:
-        fire_spots=random.rand(isize,jsize)<=p_ignite
-        forest[0,fire_spots]=3
+        fire_infected_cells=random.rand(isize,jsize)<=p_ignite
+        grid[0,fire_infected_cells]=3
     else:
-        #Set the initial fire only to center
-        forest[0,isize//2,jsize//2]=3
+        #Set the initial fire/infected person to the center
+        grid[0,isize//2,jsize//2]=3
 
     for k in range(0,nstep-1):
-        #Assume the next time step is the same as current
-        forest[k+1,:,:]=forest[k,:,:]
-        fire_front=forest[k,:,:]==3
-        trees=forest[k,:,:]==2
+        #Assume at the next time step the grid is the same as current time step
+        grid[k+1,:,:]=grid[k,:,:]
+        propagation_front=grid[k,:,:]==3
+        sane_cells=grid[k,:,:]==2 #The cells that are healthy/forested
 
-        #counting for each cell the number of neighbors on fire using convolution
+        #counting for each cell the number of neighbors burning/infected using convolution
         kernel = np.array([[0,1,0],
                            [1,0,1],
                            [0,1,0]])
 
-        neighbors_on_fire= convolve2d(fire_front, kernel, mode='same', boundary='fill', fillvalue=0)
+        neighbors_on_fire_infected= convolve2d(propagation_front, kernel, mode='same', boundary='fill', fillvalue=0)
 
-        #computing the probability of a cell to catch fire based on the number of its neighbors on fire
-        probs_to_propagate= 1 - (1-p_spread)**neighbors_on_fire
+        #computing the probability of a cell to catch fire/infection based on the number of its neighbors on fire/infected
+        probs_to_propagate= 1 - (1-p_spread)**neighbors_on_fire_infected
         #rolling a dice for all cells
         probs=random.rand(isize,jsize)
 
-        forest[k+1,trees & (probs <= probs_to_propagate)]=3  #Set trees on fire based on their respective probability to catch fire
+        grid[k+1,sane_cells & (probs <= probs_to_propagate)]=3  #Set tree/healthy cells on fire/infected based on their respective probability to catch fire/infection
         fatal_probability=random.rand(isize,jsize)
-        forest[k+1,fire_front]=1  #Burn the current fire spots/everyone that was infected recovers
-        forest[k+1,fire_front & (fatal_probability < p_fatal)]=0  #Some of the people that were infected finally die
+        grid[k+1,propagation_front]=1  #Burn the current fire spots. First consider that every person infected recovers
+        grid[k+1,propagation_front & (fatal_probability < p_fatal)]=0  #Some of the people that were infected will in fact die
         
         if debug:
             #Let's verify that when using the solver to solve forest fire, no cell is marked as 0 (dead)
-            n_dead_cells= np.sum(forest[k+1,:,:]==0)
+            n_dead_cells= np.sum(grid[k+1,:,:]==0)
             if n_dead_cells>0:
                 print(f"Debug info: At time step {k+1}, there are {n_dead_cells} dead cells in the forest.")
-    return forest
+    return grid
 
 
 
@@ -169,12 +126,15 @@ def results(initial_value=0,final_value=1, nb_values=11, variable='p_spread',sol
     '''
     '''
     npoints=kwargs['isize']*kwargs['jsize']
-    
+
+    #Creating arrays to store the results for each value of the variable
     param_values=np.linspace(initial_value,final_value,nb_values)
-    initial_fires=np.zeros(nb_values)
-    initial_forests=np.zeros(nb_values)
-    final_bare_wrt_param=np.zeros(nb_values)
-    final_forest_wrt_param=np.zeros(nb_values)
+    initial_fire_infected=np.zeros(nb_values)
+    initial_sane=np.zeros(nb_values) 
+    initial_dead=np.zeros(nb_values)
+    final_bare_immune=np.zeros(nb_values)
+    final_sane=np.zeros(nb_values)
+    final_dead=np.zeros(nb_values)
 
 
     for index,param in enumerate(param_values):
@@ -182,18 +142,21 @@ def results(initial_value=0,final_value=1, nb_values=11, variable='p_spread',sol
         result=solver(**kwargs)
 
         loc = result[0,:,:] == 3
-        initial_fires[index] = 100 * loc.sum()/npoints
+        initial_fire_infected[index] = 100 * loc.sum()/npoints
 
         loc = result[0,:,:] == 2
-        initial_forests[index] = 100 * loc.sum()/npoints
+        initial_sane[index] = 100 * loc.sum()/npoints
         
         loc = result[-1,:,:] == 1
-        final_bare_wrt_param[index] = 100 * loc.sum()/npoints
+        final_bare_immune[index] = 100 * loc.sum()/npoints
 
         loc = result[-1,:,:] == 2
-        final_forest_wrt_param[index] = 100 * loc.sum()/npoints
+        final_sane[index] = 100 * loc.sum()/npoints
 
-    return param_values, initial_fires, initial_forests, final_bare_wrt_param, final_forest_wrt_param
+        loc = result[-1,:,:] == 0
+        final_dead[index] = 100 * loc.sum()/npoints
+
+    return param_values, initial_fire_infected, initial_sane, initial_dead, final_bare_immune, final_sane, final_dead
         
 
 def make_all_2dplots(forest_in,folder='Labs/Lab04/results/',plot_function=plot_forest2d):
@@ -430,26 +393,28 @@ def question_1():
 
 def question_2():
 
-    #Varying p_spread from 0 to 1
     kwargs=dict(isize=20,jsize=20,nstep=30,p_spread=0.5,p_ignite=0.02)
 
-    p_spread_values, initial_fires_wrt_p_spread, initial_forests_wrt_p_spread, final_bare_wrt_p_spread, final_forest_wrt_p_spread = results(**kwargs)
-    p_ignite_values, initial_fires_wrt_p_ignite, initial_forests_wrt_p_ignite, final_bare_wrt_p_ignite, final_forest_wrt_p_ignite = results(variable='p_bare',**kwargs)
-
+    #Varying the spread probability of fire from 0 to 1
+    p_spread_values, initial_fires, initial_forests, initial_dead, final_bare, final_forest, final_dead = results(**kwargs)
+    
     fig,ax=plt.subplots(1,2, figsize=(12,6))
-    ax[0].plot(p_spread_values, final_bare_wrt_p_spread,label='Final Bare/burned',color='tan')
-    ax[0].plot(p_spread_values, final_forest_wrt_p_spread,label='Final Forest',color='forestgreen')
-    ax[0].plot(p_spread_values, initial_forests_wrt_p_spread, label='Initial percentage of forested cells (%)', color='darkgreen', linestyle='--')
-    ax[0].plot(p_spread_values, initial_fires_wrt_p_spread, label='Initial percentage of burning cells (%)', color='crimson', linestyle='--')
+    ax[0].plot(p_spread_values, final_bare,label='Final Bare/burned',color='tan')
+    ax[0].plot(p_spread_values, final_forest,label='Final Forest',color='forestgreen')
+    ax[0].plot(p_spread_values, initial_forests, label='Initial percentage of forested cells (%)', color='darkgreen', linestyle='--')
+    ax[0].plot(p_spread_values, initial_fires, label='Initial percentage of burning cells (%)', color='crimson', linestyle='--')
     ax[0].set_xlabel('Spread Probability')
     ax[0].set_ylabel(f'Percentage of the grid (%)')
     ax[0].set_title(f'Burning of the forest depends on the spread probability')
     ax[0].legend()
 
-    ax[1].plot(p_ignite_values*100, final_bare_wrt_p_ignite,label='Final Bare/burned',color='tan')
-    ax[1].plot(p_ignite_values*100, final_forest_wrt_p_ignite,label='Final Forest',color='forestgreen')
-    ax[1].plot(p_ignite_values*100, initial_forests_wrt_p_ignite, label='Initial percentage of forested cells (%)', color='darkgreen', linestyle='--')
-    ax[1].plot(p_ignite_values*100, initial_fires_wrt_p_ignite, label='Initial percentage of burning cells (%)', color='crimson', linestyle='--')   
+    #Varying the initial percentage of bare cells from 0 to 100%
+    p_ignite_values, initial_fires, initial_forests, initial_dead, final_bare, final_forest, final_dead = results(variable='p_bare',**kwargs)
+
+    ax[1].plot(p_ignite_values*100, final_bare,label='Final Bare/burned',color='tan')
+    ax[1].plot(p_ignite_values*100, final_forest,label='Final Forest',color='forestgreen')
+    ax[1].plot(p_ignite_values*100, initial_forests, label='Initial percentage of forested cells (%)', color='darkgreen', linestyle='--')
+    ax[1].plot(p_ignite_values*100, initial_fires, label='Initial percentage of burning cells (%)', color='crimson', linestyle='--')   
     ax[1].set_xlabel('Initial percentage of bare cells (%)')
     ax[1].set_ylabel(f'Percentage of the grid (%)')
     ax[1].set_title(f'Burning of the forest depends on initial percentage of bare cells')
@@ -458,8 +423,23 @@ def question_2():
     plt.show()
 
 
-    
+def question_3():
+    '''
+    Disease spread model
+    '''
+    kwargs=dict(isize=20,jsize=20,nstep=30,p_spread=0.5,p_ignite=0.02,p_fatal=0.3)
+    p_fatal_values, initial_infected, initial_healthy, initial_dead, final_immune, final_healthy, final_dead = results(variable='p_fatal', **kwargs)
 
+    fig,ax=plt.subplots(1,2, figsize=(12,6))
+    ax[0].plot(p_fatal_values, final_dead,label='Final Dead',color='black')
+    ax[0].plot(p_fatal_values, final_healthy,label='Final Healthy',color='deepskyblue')
+    ax[0].plot(p_fatal_values, initial_healthy, label='Initial percentage of healthy people (%)', color='deepskyblue', linestyle='--')
+    ax[0].plot(p_fatal_values, initial_infected, label='Initial percentage of infected people (%)', color='orangered', linestyle='--')
+    ax[0].set_xlabel('Fatality Probability')
+    ax[0].set_ylabel(f'Percentage of the grid (%)')
+    ax[0].set_title(f'Burning of the forest depends on the spread probability')
+    ax[0].legend()
+    
 
 def animate_forest_fire(folder='Labs/Lab04/results/', ntime=10, interval=500):
     '''
@@ -480,3 +460,46 @@ def animate_forest_fire(folder='Labs/Lab04/results/', ntime=10, interval=500):
     ani = animation.FuncAnimation(fig, update, frames=ntime, interval=interval)
     plt.show()
     return ani
+
+
+def forest_fire(isize=3,jsize=3,nstep=4,p_spread=1.):
+    '''
+    create a forest fire
+    '''
+    #Creating a forest and making all spots have trees
+    forest=np.zeros((nstep,isize,jsize),dtype=int) +2
+
+    #Set initial fire to center [NEED TO BE CHANGED LATER]
+    forest[0,isize//2,jsize//2]=3
+
+    for k in range(0,nstep-1):
+        #Assume the next time step is the same as current
+        forest[k+1,:,:]=forest[k,:,:]
+        for i in range(isize):
+            for j in range(jsize):
+                if forest[k,i,j]==3:
+                    rd_north=random.rand()
+                    rd_south=random.rand()
+                    rd_west=random.rand()
+                    rd_east=random.rand()
+
+                    #Should we spread fire on North
+                    if ((rd_north <=p_spread) and (i>0) and (forest[k,i-1,j]==2)):
+                        forest[k+1,i-1,j]=3
+
+                    #Should we spread fire on South
+                    if ( rd_south <=p_spread and (i<isize-1) and (forest[k,i+1,j]==2)):
+                        forest[k+1,i+1,j]=3
+
+                    #Should we spread fire on West
+                    if ( rd_west <=p_spread and (j>0) and (forest[k,i,j-1]==2)):
+                        forest[k+1,i,j-1]=3
+
+                    #Should we spread fire on East
+                    if ( rd_east <=p_spread and (j<jsize-1) and (forest[k,i,j+1]==2)):
+                        forest[k+1,i,j+1]=3
+                    
+                    #The burning cell becomes bare/burned
+                    forest[k+1,i,j]=1 
+
+    return forest
