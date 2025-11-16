@@ -8,7 +8,7 @@ Collaborators: None
 
 
 TO REPRODUCE THE VALUES AND PLOTS IN MY REPORT, DO THIS:
-•   ipythonexit()
+•   ipython
 •   run Lab04.py
 •   plt.ion()
 •   methodology()
