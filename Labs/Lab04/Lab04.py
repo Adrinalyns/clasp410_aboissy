@@ -1,15 +1,21 @@
 #! /usr/bin/env python3
 '''
+Lab 04 - Forest Fire and Disease Spread Models
+This code implements a simple model to simulate the spread of forest fires and diseases.
+
 Author: Adrien Boissy
 Collaborators: None
 
 
 TO REPRODUCE THE VALUES AND PLOTS IN MY REPORT, DO THIS:
-•	run lab03.py
-•	plt.ion()
-•	question_1() : to validate the solver and obtain the plot, in Q1
-•	question_2() : to obtain all the plots used for answering Q2
-•	question_3() : to obtain all the plots used for answering Q3
+•   ipythonexit()
+•   run Lab04.py
+•   plt.ion()
+•   methodology()
+•   question_1() : to validate the solver with two simple examples, in Q1
+•   question_2() : to answer Q2
+•   question_3() : to answer Q3
+
 
 
 '''
@@ -22,9 +28,11 @@ plt.style.use('seaborn-v0_8-darkgrid')
 
 #Select colors at : https://www.w3schools.com/colors/colors_picker.asp 
 
+#define the colormap for the forest fire model
 colors_forest= ['tan', 'forestgreen','crimson']
 forest_cmap = ListedColormap(colors_forest)
 
+#define the colormap for the disease spread model
 colors_disease= ['black', 'deepskyblue','mediumseagreen','orangered']
 disease_cmap = ListedColormap(colors_disease)
 
@@ -33,7 +41,42 @@ disease_cmap = ListedColormap(colors_disease)
 def forest_disease_solver(isize=3,jsize=3,nstep=4,p_spread=1.,p_ignite=None,
                             p_bare=None,p_fatal=0.,debug=False):
     '''
-    create a grid
+    Create a forest fire or disease spread model, where fire/disease can spread from neighbor to neighbor with a given probability.
+    The model can simulate both a forest fire and a disease spread by adjusting the parameters.
+
+    Forest fire states:
+    1: Bare/burned
+    2: Forested
+    3: Burning
+    Disease spread states:
+    0: Dead
+    1: Immune
+    2: Healthy
+    3: Infected
+    ----------------
+    Parameters:
+    isize, jsize, nstep : int
+        Size of the grid and number of time steps
+    p_spread : float
+        Probability of fire/disease spread from neighbor to neighbor
+    p_ignite : float or None
+        Initial probability of a cell being on fire/infected at time 0
+        If None, the initial fire/infected person is set to the center of the grid
+    p_bare : float or None
+        Initial probability of a cell being bare/immune at time 0
+        If None, all cells are forested/healthy at time 0
+    p_fatal : float
+        Probability of an infected person to die
+        set to 0 to simulate a forest fire
+    debug : bool
+        If True, print if the number of dead cells. 
+        Used to verify that no cell is marked as dead in the forest fire model
+    
+    ---------------
+    Returns:
+    grid : 3d array
+        3D array of shape (nstep, isize, jsize) representing the state of the grid over time
+    ---------------
     '''
     #Creating a forest/persons grid and making all spots have trees
     grid=np.zeros((nstep,isize,jsize),dtype=int) +2
@@ -48,6 +91,7 @@ def forest_disease_solver(isize=3,jsize=3,nstep=4,p_spread=1.,p_ignite=None,
     else:
         #Set the initial fire/infected person to the center
         grid[0,isize//2,jsize//2]=3
+    
 
     for k in range(0,nstep-1):
         #Assume at the next time step the grid is the same as current time step
@@ -80,9 +124,23 @@ def forest_disease_solver(isize=3,jsize=3,nstep=4,p_spread=1.,p_ignite=None,
     return grid
 
 
-
 def plot_forest2d(forest_in,itime=0):
     '''
+    This function makes a 2D plot of the forest at a given time step,
+    This function plots the forest grid in an optimal way when the grid is squared.
+    If the grid is not squared, the function should be modified.
+
+    -----------
+    Parameters:
+    forest_in : 3d array
+        3D array of shape (ntime, isize, jsize) representing the state of the forest over time
+    itime : int
+        Time step to plot
+
+    -----------
+    Returns:
+    fig, ax : matplotlib figure and axis
+        Figure and axis objects of the plot
     '''
     fig, ax = plt.subplots(1,1, figsize=(6,8))
 
@@ -101,8 +159,24 @@ def plot_forest2d(forest_in,itime=0):
 
     return fig,ax
 
+
 def plot_disease2d(grid_in,itime=0):
     '''
+    This function makes a 2D plot of the disease spread at a given time step,
+    This function plots the disease grid in an optimal way when the grid is squared.
+    If the grid is not squared, the function should be modified.
+
+    -----------
+    Parameters:
+    grid_in : 3d array
+        3D array of shape (ntime, isize, jsize) representing the state of the disease spread over time
+    itime : int
+        Time step to plot
+        
+    -----------
+    Returns:
+    fig, ax : matplotlib figure and axis
+        Figure and axis objects of the plot
     '''
     fig, ax = plt.subplots(1,1, figsize=(6,8))
 
@@ -124,6 +198,49 @@ def plot_disease2d(grid_in,itime=0):
 
 def results(initial_value=0,final_value=1, nb_values=11, variable='p_spread',solver=forest_disease_solver,**kwargs):
     '''
+    This function runs the chosen solver for a range of value of a given variable and collects the initial and final states.
+    
+    -----------
+    Parameters:
+    initial_value : float, default 0
+        Initial value of the variable to be varied
+
+    final_value : float, default 1
+        Final value of the variable to be varied
+
+    nb_values : int, default 11
+        Number of values to be tested between initial and final value
+
+    variable : str, default 'p_spread'
+        Name of the variable to be varied
+
+    solver : function, default forest_disease_solver
+        Solver function to be used 
+
+    kwargs : dict
+        Additional parameters to be passed to the solver function
+    -----------
+    Returns:
+    param_values : 1d array
+        Array of the values of the variable
+
+    initial_fire_infected : 1d array
+        Initial percentage of fire/infected for each parameter value
+
+    initial_sane : 1d array
+        Initial percentage of sane/healthy for each parameter value
+
+    initial_dead : 1d array
+        Initial percentage of dead for each parameter value
+
+    final_bare_immune : 1d array
+        Final percentage of bare/immune for each parameter value
+
+    final_sane : 1d array
+        Final percentage of sane/healthy for each parameter value
+
+    final_dead : 1d array
+        Final percentage of dead for each parameter value
     '''
     npoints=kwargs['isize']*kwargs['jsize']
 
@@ -141,12 +258,14 @@ def results(initial_value=0,final_value=1, nb_values=11, variable='p_spread',sol
         kwargs[variable]=param
         result=solver(**kwargs)
 
+        #Calculating initial percentage of fire/infected, sane/healthy
         loc = result[0,:,:] == 3
         initial_fire_infected[index] = 100 * loc.sum()/npoints
 
         loc = result[0,:,:] == 2
         initial_sane[index] = 100 * loc.sum()/npoints
         
+        ##Calculating final percentage of bare/immune, sane/healthy, dead
         loc = result[-1,:,:] == 1
         final_bare_immune[index] = 100 * loc.sum()/npoints
 
@@ -161,7 +280,17 @@ def results(initial_value=0,final_value=1, nb_values=11, variable='p_spread',sol
 
 def make_all_2dplots(forest_in,folder='Labs/Lab04/results/',plot_function=plot_forest2d):
     '''
-    Make all 2D plots for all time steps
+    Make all 2D plots for all time steps, and save them in the specified folder. 
+    The plot_function parameter allows to choose between forest and disease plots.
+    -----------
+    Parameters:
+    forest_in : 3d array
+        3D array of shape (ntime, isize, jsize) representing the state of the forest/disease over time
+    folder : str, default 'Labs/Lab04/results/'
+        Folder where the plots will be saved
+    plot_function : function, default plot_forest2d
+        Function used to create the plots
+    
     '''
     import os
 
@@ -178,7 +307,15 @@ def make_all_2dplots(forest_in,folder='Labs/Lab04/results/',plot_function=plot_f
 
     
 def plot_progression(forest,additional_title=''):
-    '''Calculate the time dynamics of a forest fire and plot them.'''
+    '''
+    Calculate the time dynamics of a forest fire and plot them.
+    -----------
+    Parameters:
+    forest : 3d array
+        3D array of shape (ntime, isize, jsize) representing the state of the forest/disease over time
+    additional_title : str, default ''
+        Additional title to be added to the plot
+    '''
 
     # Get total number of points:
     ksize, isize, jsize = forest.shape
@@ -232,6 +369,47 @@ def test_neighbors(nx,ny):
     neighbors_on_fire_convolve= convolve2d(fire_front, kernel, mode='same', boundary='fill', fillvalue=0)
     print(neighbors_on_fire_convolve)
     print(np.array_equal(neighbors_on_fire, neighbors_on_fire_convolve))
+
+
+def methodology():
+    '''
+    This function plot the figure used in the methodology section of the report.
+    The first and second time steps of a 3x3 forest with an initial fire in the center
+
+    '''
+    #First example: 3x3 forest with initial fire in center
+    forest1=forest_disease_solver(isize=3,jsize=3,nstep=4,p_spread=1.0)
+    fig,(ax1,ax2)=plt.subplots(1,2, figsize=(10,6))
+    fig.suptitle('3x3 Forest: central ignition and sure propagation', fontsize=16)
+    
+    #Forest at time 0
+    my_map0 = ax1.pcolor(forest1[0,:,:],vmin=1,vmax=3,cmap=forest_cmap)
+
+    cbar=plt.colorbar(my_map0,ax=ax1, shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
+    cbar.set_ticks([1,2,3])
+    cbar.set_ticklabels(['Bare/burned','Forested','Burning'])
+
+    #Invert y axis to match matrix orientation
+    ax1.invert_yaxis()
+    #Add labels and title
+    ax1.set_xlabel('Eastward($km$) $\\longrightarrow$')
+    ax1.set_ylabel('Northward ($km$) $\\longrightarrow$')
+    ax1.set_title(f'The Seven Acre wood at T=000')
+    #Forest at time 1
+    my_map1 = ax2.pcolor(forest1[1,:,:],vmin=1,vmax=3,cmap=forest_cmap)
+
+    cbar=plt.colorbar(my_map1,ax=ax2, shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
+    cbar.set_ticks([1,2,3])
+    cbar.set_ticklabels(['Bare/burned','Forested','Burning'])
+
+    #Invert y axis to match matrix orientation
+    ax2.invert_yaxis()
+    #Add labels and title
+    ax2.set_xlabel('Eastward($km$) $\\longrightarrow$')
+    ax2.set_ylabel('Northward ($km$) $\\longrightarrow$')
+    ax2.set_title(f'The Seven Acre wood at T=001')
+
+    plt.show()
 
 
 def question_1():
@@ -305,8 +483,8 @@ def question_1():
     #Second example: 8x3 forest with initial fire in center
     forest2=forest_disease_solver(isize=3,jsize=6,nstep=6,p_spread=1.0)
 
-    fig2,((ax2_11,ax2_12,ax2_13),(ax2_21,ax2_22,ax2_23))=plt.subplots(2,3, figsize=(14,7.5))
-    fig2.suptitle('8x6 Forest: central ignition and sure propagation', fontsize=16)
+    fig2,((ax2_11,ax2_12,ax2_13),(ax2_21,ax2_22,ax2_23))=plt.subplots(2,3, figsize=(14,7))
+    fig2.suptitle('3x6 Forest: central ignition and sure propagation', fontsize=16)
 
     #Forest at time 0
     my_map0 = ax2_11.pcolor(forest2[0,:,:],vmin=1,vmax=3,cmap=forest_cmap)
@@ -392,8 +570,14 @@ def question_1():
 
 
 def question_2():
+    '''
+    This function analyzes the effect of varying the spread probability of spreading 
+    and the initial percentage of bare cells on the burning of the forest.
+    The results are plotted in two subplots, and used in the report to answer question 2.
+    It may not reproduce exactly the same values as in the report due to the stochastic nature of the model.
+    '''
 
-    kwargs=dict(isize=20,jsize=20,nstep=30,p_spread=0.5,p_ignite=0.02)
+    kwargs=dict(isize=100,jsize=100,nstep=300,p_spread=1,p_ignite=0.02)
 
     #Varying the spread probability of fire from 0 to 1
     p_spread_values, initial_fires, initial_forests, initial_dead, final_bare, final_forest, final_dead = results(**kwargs)
@@ -401,8 +585,8 @@ def question_2():
     fig,ax=plt.subplots(1,2, figsize=(12,6))
     ax[0].plot(p_spread_values, final_bare,label='Final Bare/burned',color='tan')
     ax[0].plot(p_spread_values, final_forest,label='Final Forest',color='forestgreen')
-    ax[0].plot(p_spread_values, initial_forests, label='Initial percentage of forested cells (%)', color='darkgreen', linestyle='--')
-    ax[0].plot(p_spread_values, initial_fires, label='Initial percentage of burning cells (%)', color='crimson', linestyle='--')
+    ax[0].plot(p_spread_values, initial_forests, label='Initial Forest', color='darkgreen', linestyle='--')
+    ax[0].plot(p_spread_values, initial_fires, label='Initial Fires', color='crimson', linestyle='--')
     ax[0].set_xlabel('Spread Probability')
     ax[0].set_ylabel(f'Percentage of the grid (%)')
     ax[0].set_title(f'Burning of the forest depends on the spread probability')
@@ -413,8 +597,8 @@ def question_2():
 
     ax[1].plot(p_ignite_values*100, final_bare,label='Final Bare/burned',color='tan')
     ax[1].plot(p_ignite_values*100, final_forest,label='Final Forest',color='forestgreen')
-    ax[1].plot(p_ignite_values*100, initial_forests, label='Initial percentage of forested cells (%)', color='darkgreen', linestyle='--')
-    ax[1].plot(p_ignite_values*100, initial_fires, label='Initial percentage of burning cells (%)', color='crimson', linestyle='--')   
+    ax[1].plot(p_ignite_values*100, initial_forests, label='Initial Forest', color='darkgreen', linestyle='--')
+    ax[1].plot(p_ignite_values*100, initial_fires, label='Initial Fires', color='crimson', linestyle='--')   
     ax[1].set_xlabel('Initial percentage of bare cells (%)')
     ax[1].set_ylabel(f'Percentage of the grid (%)')
     ax[1].set_title(f'Burning of the forest depends on initial percentage of bare cells')
@@ -425,25 +609,55 @@ def question_2():
 
 def question_3():
     '''
-    Disease spread model
+    This function analyzes the effect of varying the fatality probability of the disease
+    and the initial percentage of immune people on the spread of the disease.
+    The results are plotted in two subplots, and used in the report to answer question 3.
+    It may not reproduce exactly the same values as in the report due to the stochastic nature of the model.
     '''
-    kwargs=dict(isize=20,jsize=20,nstep=30,p_spread=0.5,p_ignite=0.02,p_fatal=0.3)
+    kwargs=dict(isize=100,jsize=100,nstep=300,p_spread=0.5,p_ignite=0.02,p_fatal=1)
     p_fatal_values, initial_infected, initial_healthy, initial_dead, final_immune, final_healthy, final_dead = results(variable='p_fatal', **kwargs)
 
     fig,ax=plt.subplots(1,2, figsize=(12,6))
+    
+    ax[0].plot(p_fatal_values, initial_infected, label='Initial infected', color='orangered', linestyle='--')
+    ax[0].plot(p_fatal_values, initial_healthy-final_healthy + initial_infected,label='Overall Infected people',color='orangered')
+    ax[0].plot(p_fatal_values, final_immune,label='Final Immune',color='deepskyblue')
     ax[0].plot(p_fatal_values, final_dead,label='Final Dead',color='black')
-    ax[0].plot(p_fatal_values, final_healthy,label='Final Healthy',color='deepskyblue')
-    ax[0].plot(p_fatal_values, initial_healthy, label='Initial percentage of healthy people (%)', color='deepskyblue', linestyle='--')
-    ax[0].plot(p_fatal_values, initial_infected, label='Initial percentage of infected people (%)', color='orangered', linestyle='--')
     ax[0].set_xlabel('Fatality Probability')
-    ax[0].set_ylabel(f'Percentage of the grid (%)')
-    ax[0].set_title(f'Burning of the forest depends on the spread probability')
+    ax[0].set_ylabel(f'Percentage of the people (%)')
+    ax[0].set_title(f"The probability of death doesn't affect the disease spread \n but it increases the death toll")
     ax[0].legend()
     
+    p_fatal_values, initial_infected, initial_healthy, initial_dead, final_immune, final_healthy, final_dead = results(variable='p_bare', **kwargs)
+    ax[1].plot(p_fatal_values, initial_healthy-final_healthy + initial_infected,label='Overall Infected people',color='orangered',linewidth=4)
+    ax[1].plot(p_fatal_values, final_dead,label='Death toll',color='black')
+    ax[1].plot(p_fatal_values, final_healthy+final_immune,label='Final Healthy + Immune',color='deepskyblue')
+    ax[1].plot(p_fatal_values, initial_infected, label='Initial infected', color='orangered', linestyle='--')
+    ax[1].plot(p_fatal_values, final_healthy,label='Final Healthy',color='mediumseagreen')
+    ax[1].set_xlabel('Percentage of vaccinated people (%)')
+    ax[1].set_ylabel(f'Percentage of people (%)')
+    ax[1].set_title(f'The more people are vaccinated, the less the disease spreads\n p_fatal=1')
+    ax[1].legend()
+    
+    plt.show()
+
 
 def animate_forest_fire(folder='Labs/Lab04/results/', ntime=10, interval=500):
     '''
-    Create an animation from the saved plots
+    This function creates an animation of the forest fire from the saved images in the specified folder.
+    This function is not used in the report, but can be used to visualize the forest fire simulation.
+    -----------
+    Parameters:
+    folder : str
+        Folder where the images are saved
+    ntime : int
+        Number of time steps/images to animate
+    interval : int
+        Interval between frames in milliseconds
+    -----------
+    Returns:
+    ani : matplotlib animation
+        Animation object
     '''
     import os
     import matplotlib.animation as animation
@@ -464,7 +678,16 @@ def animate_forest_fire(folder='Labs/Lab04/results/', ntime=10, interval=500):
 
 def forest_fire(isize=3,jsize=3,nstep=4,p_spread=1.):
     '''
-    create a forest fire
+    Brute force implementation of a forest fire model, where fire can spread from neighbor to neighbor with a given probability.
+    ---------------
+    Parameters:
+    isize, jsize, nstep : int
+        Size of the grid and number of time steps
+    p_spread : float
+        Probability of fire spread from neighbor to neighbor
+    ---------------
+    Returns:
+    forest : 3d array 
     '''
     #Creating a forest and making all spots have trees
     forest=np.zeros((nstep,isize,jsize),dtype=int) +2
