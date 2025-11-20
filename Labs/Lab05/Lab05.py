@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 plt.style.use('seaborn-v0_8-darkgrid')
 
 #some constants
-radearth = 635700 # Earth radius in meters
+radearth = 6357000 # Earth radius in meters
 mxdlyr = 50.      # detpth of mixed layer in meters
 sigma = 5.67e-8  # Stefan-Boltzmann constant
 C = 4.2e6        # Specific heat capacity of water
@@ -147,7 +147,7 @@ def insolation(S0, lats):
     return insolation
 
 
-def snowball_earth(nlat=18, t_final=10000, dt=1, debug=False):
+def snowball_earth(nlat=18, t_final=10000, dt=1,T_init=temp_warm, apply_sphercorr=False, apply_insol=False, S0=1370, lam=100.0, emiss=1.0, albice=.6, albwater=.3, debug=False):
     '''
     Solve the snowball earth problem.
 
@@ -159,6 +159,22 @@ def snowball_earth(nlat=18, t_final=10000, dt=1, debug=False):
         Time length of simulation in years.
     dt : int or float, default to 1.0
         Size of timestep in years.
+    T_init : function or array, default to temp_warm
+        Set the initial condition of the simulation. If a function is given,
+        it must take latitudes as input and return the array of temperature  
+        at specified latitudes. Otherwise the given values are used as-is.
+    apply_sphercorr : bool, default to False
+        Apply spherical correction term
+    apply_insol : bool, default to False
+        Apply the radiative transfer
+    s0 : float, default to 1370
+        Solar constant
+    lam : float, default to 100
+        Set ocean diffusivity (m^2/s).
+    emiss : float, default to 1.0
+        Set emissivity of the earth.
+    albice, albwater : float, defaul to .6 and .3
+        The albedo of ice and water
     debug : bool, default to False
         If True, print debugging information.
 
@@ -181,37 +197,105 @@ def snowball_earth(nlat=18, t_final=10000, dt=1, debug=False):
     # Set up grid:
     dlat, lats = gen_gird(nlat)
 
+    # Y-spacing for cells in physical units:
+    dy = np.pi * radearth / nlat
+
     #Set initial temperature:
-    T = temp_warm(lats)
+    T = np.zeros(nlat)
+    if callable(T_init):
+        T = T_init(lats)
+    else:
+        T += T_init
+
     '''
     albedo = np.zeros(nlat)
     frozen = T <= 0.
     albedo[frozen] = alb_ice
     albedo[~frozen] = alb_water
     '''
+
+    #Create our K matrix for diffusion:
     K=np.zeros((nlat, nlat))
-
-
-    for i in range(1,nlat-1):
-        for j in range(nlat):
-            if i==j:
-                K[i, j] = -2.0
-            elif(i==j+1 or i==j-1):
-                K[i, j] = 1.0
-
-    K[0,0] = -2.0
-    K[0,1] = 2.0
-    K[nlat-1, nlat-1] = -2.0
-    K[nlat-1, nlat-2] = 2.0
+    K[np.arange(nlat), np.arange(nlat)] = -2.0
+    K[np.arange(1,nlat),np.arange(nlat-1)] = 1.0
+    K[np.arange(nlat-1),np.arange(1,nlat)] = 1.0
+    K[0,1], K[-1,-2] = 2.0, 2.0
+    K *= 1.0 / dy**2
     
-    L= np.linalg.inv(np.eye(nlat) - dt * lambda_val * K)
+    L_inv= np.linalg.inv(np.eye(nlat) - dt * lam * K)
 
+    #Create our first derivative operator:
+    B=np.zeros((nlat,nlat))
+    B[np.arange(1,nlat-1),np.arange(nlat-2)] = -1.0
+    B[np.arange(1,nlat-1),np.arange(2,nlat)] = 1.0
+
+    # Create area array:
+    Axz = np.pi * ((radearth + 50)**2 - (radearth)**2) * np.sin(np.pi/180.*lats)
+
+    # Get derivative of Area:
+    dAxz = np.matmul(B, Axz)
+
+    #Create insolation array
+    insol = insolation(S0,lats)
+
+    # Set initial albedo:
+    albedo = np.zeros(nlat)
+    loc_ice = T < -10.
+    albedo[loc_ice] = albice
+    albedo[~loc_ice] = albwater
 
     if debug:
         print(K)
+        print(B)
     
     for step in range(n_steps):
-        T = np.dot(L,T)
+        # Create spherical coordinate correction term:
+        sphercorr = int(apply_sphercorr) * (lam * dt)/(4 *Axz * dy**2) * np.matmul(B, T) * dAxz
 
+        #Update albedo:
+        loc_ice = T < -10.
+        albedo[loc_ice] = albice
+        albedo[~loc_ice] = albwater
+        
+        #Calculate insolation term
+        radiative = int(apply_insol) * dt/(rho*C*mxdlyr) * ((1-albedo)*insol - emiss * sigma * (T+273)**4)
+
+        T = np.matmul(L_inv,T + sphercorr + radiative)
+
+    return lats, T
+
+
+def question_1():
+    '''' 
+    Create solution figure for testing the snowball earth model and answering question 1.
+    '''
+    # Get solution after 10K years, diffusion only
+    lats, T_final = snowball_earth()
+
+    # Get solution after 10K years, diffusion and spherical correction
+    lats, T_sphercorr = snowball_earth(apply_sphercorr=True)
+
+    # Get solution after 10K years, diffusion, spherical correction and radiative transfer
+    lats, T_all = snowball_earth(apply_sphercorr=True, apply_insol=True, albice=.3)
+
+    # Get the initial condition
+    T_initial = temp_warm(lats)
+
+    #Create a fancy plot:
+
+    fig,ax = plt.subplots(1,1)
+    ax.plot(lats - 90., T_initial, label='Initial Condition')
+    ax.plot(lats - 90., T_final, label='Diffusion')
+    ax.plot(lats - 90., T_sphercorr, label='Diffusion + Spherical Corr.')
+    ax.plot(lats - 90., T_all, label='Diffusion + Spherical Corr. + Radiative')
+
+    # Customize the plot:
+    ax.set_xlabel('Latitude (°)')
+    ax.set_ylabel('Temperature (°C)')
+    ax.set_title('Solution after 10,000 Years')
+    ax.legend(loc='best')
 
     
+
+
+  
