@@ -2,6 +2,8 @@
 '''
 Lab 05 : Snowball Earth
 
+author : Adrien Boissy
+date   : Fall 2025
 '''
 
 import numpy as np
@@ -185,7 +187,6 @@ def snowball_earth(nlat=18, t_final=10000, dt=1,T_init=temp_warm, apply_sphercor
         0 is south pole, 180 is north pole.
     temp : Numpy array
         Temperature profile at final time step.
-
     '''
 
     #Set number of time steps:
@@ -237,26 +238,24 @@ def snowball_earth(nlat=18, t_final=10000, dt=1,T_init=temp_warm, apply_sphercor
 
     #Create insolation array
     insol = insolation(S0,lats)
-
-    # Set initial albedo:
+    
+    # Define the albedo, it will be initialized at the first iteration of the loop
+    #Then it will be updated at each time step
     albedo = np.zeros(nlat)
-    loc_ice = T < -10.
-    albedo[loc_ice] = albice
-    albedo[~loc_ice] = albwater
 
     if debug:
         print(K)
         print(B)
     
     for step in range(n_steps):
-        # Create spherical coordinate correction term:
-        sphercorr = int(apply_sphercorr) * (lam * dt)/(4 *Axz * dy**2) * np.matmul(B, T) * dAxz
-
         #Update albedo:
         loc_ice = T < -10.
         albedo[loc_ice] = albice
         albedo[~loc_ice] = albwater
-        
+
+        # Create spherical coordinate correction term:
+        sphercorr = int(apply_sphercorr) * (lam * dt)/(4 *Axz * dy**2) * np.matmul(B, T) * dAxz
+
         #Calculate insolation term
         radiative = int(apply_insol) * dt/(rho*C*mxdlyr) * ((1-albedo)*insol - emiss * sigma * (T+273)**4)
 
@@ -284,10 +283,10 @@ def question_1():
     #Create a fancy plot:
 
     fig,ax = plt.subplots(1,1)
-    ax.plot(lats - 90., T_initial, label='Initial Condition')
-    ax.plot(lats - 90., T_final, label='Diffusion')
-    ax.plot(lats - 90., T_sphercorr, label='Diffusion + Spherical Corr.')
-    ax.plot(lats - 90., T_all, label='Diffusion + Spherical Corr. + Radiative')
+    ax.plot(lats - 90., T_initial, label='Initial Condition', color='deepskyblue', linewidth=4)
+    ax.plot(lats - 90., T_final, label='Diffusion',color='red', linewidth=4)
+    ax.plot(lats - 90., T_sphercorr, label='Diffusion + Spherical Corr.', color='orange', linewidth=4)
+    ax.plot(lats - 90., T_all, label='Diffusion + Spherical Corr. + Radiative', color='olivedrab', linewidth=4)
 
     # Customize the plot:
     ax.set_xlabel('Latitude (°)')
@@ -295,7 +294,187 @@ def question_1():
     ax.set_title('Solution after 10,000 Years')
     ax.legend(loc='best')
 
+def question_2():
+    '''
+    Answer question 2 by testing a range of thermal diffusivities, and emissivities,
+    to find a combination that allow the warm state to persist.
+    '''
+    kwargs={'nlat':40, 't_final':10000, 'dt':1, 'apply_sphercorr':True, 'apply_insol':True, \
+            'S0':1370, 'lam': 75, 'emiss': 0.5, 'albice':.3, 'albwater':.3, 'debug':False}
     
+    fig, ax = plt.subplots(1,2, figsize=(13,8))
 
+    #Varying the thermal diffusivity of the ocean
+    lam_values = np.linspace(0,150,6)
+    for lam in lam_values:
+        kwargs['lam']=lam
+        lats, T_final = snowball_earth(**kwargs)
+        ax[0].plot(lats - 90., T_final, label=f'$\lambda$ = {lam:.1f} $W/m^2 K$')
+    
+    T_warm = temp_warm(lats)
+    ax[0].plot(lats - 90., T_warm, label='Warm Earth', color='red', linewidth=3)
 
+    ax[0].set_xlabel('Latitude (°)')
+    ax[0].set_ylabel('Temperature (°C)')
+    ax[0].set_title(f'Varying Thermal Diffusivity of Ocean\n $\epsilon$ = {kwargs["emiss"]:.2f}')
+    ax[0].legend(loc='best')
+
+    #Restore lambda value
+    kwargs['lam']=75.0
+
+    #Varying the emissivity of Earth
+    emiss_values = np.linspace(0.2,1,6)
+    for emiss in emiss_values:
+        kwargs['emiss']=emiss
+        lats, T_final = snowball_earth(**kwargs)
+        ax[1].plot(lats - 90., T_final, label=f'$\epsilon$ = {emiss:.2f}')
+
+    #Plotting the warm earth solution for reference
+    ax[1].plot(lats - 90., T_warm, label='Warm Earth', color='red', linewidth=3)
   
+    ax[1].set_xlabel('Latitude (°)')
+    ax[1].set_ylabel('Temperature (°C)')
+    ax[1].set_title(f'Varying Emissivity of Earth\n $\lambda$ = {kwargs["lam"]:.2f} $W/m^2 K$')
+    ax[1].legend(loc='best')
+    
+    lam_opt = 35.0
+    emiss_opt = 0.73
+
+    #Calculating the optimal solution: keeping earth temperature as it is today
+    kwargs['lam']=lam_opt
+    kwargs['emiss']=emiss_opt
+    lats, T_final = snowball_earth(**kwargs)
+
+    #Plotting the optimal solution
+    fig2,ax2 = plt.subplots(1,1)
+    ax2.plot(lats - 90., T_warm, label='Initial State: warm Earth', color='red', linewidth=4)
+    ax2.plot(lats - 90., T_final, label='Final State', color='black', linewidth=2)
+    ax2.set_xlabel('Latitude (°)')
+    ax2.set_ylabel('Temperature (°C)')
+    ax2.set_title(f'To keep the earth as it is today, we need \n \
+                    $\lambda$ = {lam_opt:.2f} $W/m^2 K$ and $\epsilon$ = {emiss_opt:.2f}')
+    ax2.legend(loc='best')
+    
+    plt.show()
+
+def question_3():
+    '''
+    Answer question 3 by testing different initial conditions, 
+    and looking at their effect on the equilibrium state.
+    '''
+
+    #Calculating the equilibrium with a hot earth initial condition
+    T_initial_hot = 60. #°C
+    kwargs={'nlat':90, 't_final':10000, 'dt':1, 'T_init': T_initial_hot, 'apply_sphercorr':True, \
+            'apply_insol':True, 'S0':1370, 'lam': 35.0, 'emiss': 0.73, 'albice':.6, 'albwater':.3, 'debug':False}
+    lats, T_final_hot = snowball_earth(**kwargs)
+    loc_ice_free = T_final_hot > -10.
+
+    #Calculating the equilibrium with a warm earth initial condition -> warm equilibrium
+    T_initial_warm = temp_warm(lats) #°C
+    kwargs['T_init'] = T_initial_warm
+    lats, T_final_warm = snowball_earth(**kwargs)
+    loc_ice_free = T_final_warm > -10.
+
+    fig,ax = plt.subplots(1,2, figsize=(14,7))
+
+    #Plotting the hot earth initial condition and the resulting equilibrium
+    ax[0].plot([-90.,90.],[T_initial_hot,T_initial_hot], label='Initial Hot Temperature', color='red')
+    ax[0].plot(lats - 90., T_final_hot, label=f'Hot Earth equilibrium: Frozen regions',color='cornflowerblue')
+    ax[0].plot(lats[loc_ice_free] - 90., T_final_hot[loc_ice_free], label='Hot Earth equilibrium: Ice free regions', color='maroon')
+    
+    #Plotting the warm earth equilibrium for comparison
+    ax[0].plot(lats - 90., T_final_warm, label='Warm Earth Equilibrium: Frozen regions', color='cornflowerblue',linestyle='dotted')
+    ax[0].plot(lats[loc_ice_free] - 90., T_final_warm[loc_ice_free], label='Warm Earth equilibrium: Ice free regions', color='maroon', linestyle='dotted')
+    
+    #Customize the plot
+    ax[0].set_xlabel('Latitude (°)')
+    ax[0].set_ylabel('Temperature (°C)')
+    ax[0].set_title('When the there is no ice, the earth comes back to the warm state')
+    ax[0].legend(loc='best')
+    
+    #Calculating the equilibrium with a cold earth initial condition
+    T_initial_cold = -60. #°C
+    kwargs['T_init'] = T_initial_cold
+    lats, T_final_cold = snowball_earth(**kwargs)
+
+    #Plotting the cold earth solution
+    ax[1].plot([-90.,90.],[T_initial_cold,T_initial_cold], label='Initial Cold Temperature', color='mediumblue')
+    ax[1].plot(lats - 90., T_final_cold, label=f'Snowball Earth equilibrium', color='cornflowerblue')
+    #Customize the plot
+    ax[1].set_xlabel('Latitude (°)')
+    ax[1].set_ylabel('Temperature (°C)')
+    ax[1].set_title('When the whole earth is frozen, it cannot escape the snowball state')
+    ax[1].legend(loc='best')
+
+    #Warm earth, with flash freeze initial condition: the albedo is set to ice albedo everywhere
+    T_initial_warm = temp_warm(lats)
+    kwargs['T_init'] = T_initial_warm
+    #artificially set albedo to ice albedo everywhere
+    kwargs['albwater'] = .6
+    lats, T_final_flash_freeze = snowball_earth(**kwargs)
+
+    #Plotting the flash freeze equilibrium
+    fig2,ax2 = plt.subplots(1,1)
+    ax2.plot(lats - 90., T_initial_warm, label='Initial Warm Temperature', color='orange')
+    ax2.plot(lats - 90., T_final_flash_freeze, label='Flash Freeze equilibrium', color='cornflowerblue')
+
+    #Plotting the snowball earth equilibrium for comparison
+    ax2.plot(lats - 90., T_final_cold, label='Snowball Earth equilibrium', color='cornflowerblue', linestyle='dotted')
+
+    #Plotting the warm earth equilibrium for comparison
+    ax2.plot(lats - 90., T_final_hot, label='Warm Earth Equilibrium', color='red', linestyle='dotted')
+
+    #Customize the plot
+    ax2.set_xlabel('Latitude (°)')
+    ax2.set_ylabel('Temperature (°C)')
+    ax2.set_title('If the whole earth is suddenly frozen (still hot),\n it reaches the snowball state')
+    ax2.legend(loc='best')
+    
+    plt.show()
+
+def question_4():
+    '''
+    Answer question 4 by testing the influence of slow increase/decrease of the solar constant.
+    '''
+
+    gamma_init= 0.4 #Initial fraction of solar constant
+
+    gamma_values_rise = np.arange(gamma_init, 1.45, 0.05)
+
+    #Initial cold earth condition
+    T_init = -60. #°C
+
+    #Parameters for the simulation
+    kwargs={'nlat':90, 't_final':10000, 'dt':1, 'T_init':T_init, 'apply_sphercorr':True, 'apply_insol':True, \
+            'S0':gamma_init*1370, 'lam': 35, 'emiss': 0.73, 'albice':.6, 'albwater':.3, 'debug':False}
+
+    #Defining a vector of the average temperature at equilibrium for each gamma value
+    T_avg_eq_rise = []
+
+    for gamma in gamma_values_rise:
+        kwargs['S0'] = gamma * 1370
+        kwargs['T_init'] = T_init
+        lats, T_final = snowball_earth(**kwargs)
+        T_avg_eq_rise.append(np.mean(T_final))
+        T_init = T_final #Use the final state as initial condition for the next gamma value
+    fig,ax = plt.subplots(1,1)
+    ax.plot(gamma_values_rise, T_avg_eq_rise, marker='o')
+
+    gamma_values_drop = np.arange(1.4, gamma_init-0.05, -0.05)
+    #Defining a vector of the average temperature at equilibrium for each gamma value
+    T_avg_eq_drop = []
+
+    for gamma in gamma_values_drop:
+        kwargs['S0'] = gamma * 1370
+        kwargs['T_init'] = T_init
+        lats, T_final = snowball_earth(**kwargs)
+        T_avg_eq_drop.append(np.mean(T_final))
+        T_init = T_final #Use the final state as initial condition for the next gamma value
+    fig,ax = plt.subplots(1,1)
+    ax.plot(gamma_values_drop, T_avg_eq_drop, marker='o')
+        
+
+
+
+
