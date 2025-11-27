@@ -23,17 +23,19 @@ alb_ice = 0.6    # Albedo of ice
 alb_water = 0.3  # Albedo of water
 lam = 100        # Diffusivity of the ocean (m^2/s)
 
-def gen_gird(npoints=18):
+def gen_grid(nlats=18,nlongs=36):
     '''
-    Create a evenly spaced latitudinal grid with 'npoints' cell centers.
-    Grid will always run from 0 to 180 degree as the edges of the grid. This
-    means that the first gird point will be 'dLat/2' and the last point will be
-    '180 - dLat/2'.
+    Create two evenly spaced latitudinal and longitudinal grids with respectively 'nlats' and 'nlongs' cell centers.
+    The edges will always run from 0 to 180 degree in latitude and from 0 to 360 degree in longitude.
+    This means that the first latitude grid point (center) will be 'dLat/2' and the last point will be at '180 - dLat/2'.
+    Similarly, the first longitude grid point (center) will be 'dLong/2' and the last point will be at '360 - dLong/2'.
 
     Parameters
     ----------
-    npoints : int, default to 18
-        Number of grid points to create.
+    nlats : int, default to 18
+        Number of latitude grid points to create.
+    nlongs : int, default to 36
+        Number of longitude grid points to create.
         
     Returns
     ----------
@@ -42,30 +44,55 @@ def gen_gird(npoints=18):
     lats : Numpy array
         Locations of all grid cell centers (degrees).
     '''
-    dlat = 180 / npoints  # Latitude spacing.
-    lats = np.linspace(dlat/2., 180-dlat/2., npoints)  # Lat cell centers.
+    dlat = 180 / nlats  # Latitude spacing.
+    dlong = 360 / nlongs  # Longitude spacing.
+    lats = np.linspace(dlat/2., 180-dlat/2., nlats)  # Lat cell centers.
+    longs = np.linspace(dlong/2., 360-dlong/2., nlongs)  # Long cell centers.
 
-    return dlat, lats
+    return dlat, dlong, lats, longs
 
 def test_functions():
     ''' 
     Test functions
     '''
 
-    print('Test gen_gird')
-    print('For npoints=5:')
+    print('Test gen_grid')
+    print('For nlat=5, nlong=6:')
     dlat_correct, lats_correct = 36.0, np.array([18., 54., 90., 126., 162.])
-    result = gen_gird(5)
+    dlong_correct, longs_correct = 60.0, np.array([30., 90., 150., 210., 270., 330.])
+    result = gen_grid(5, 6)
 
-    if (result[0] == dlat_correct) and np.all(result[1] == lats_correct):
-        print('\tPassed')
+    if (result[0] == dlat_correct) and np.all(result[2] == lats_correct):
+        print('\tLatitudinal grid: Passed')
     else:
-        print('\tFailed')
+        print('\tLatitudinal grid: Failed')
         print('\tExpected:', (dlat_correct, lats_correct))
         print('\tGot     :', result)
+    if (result[1] == dlong_correct) and np.all(result[3] == longs_correct):
+        print('\tLongitudinal grid: Passed')
+    else:
+        print('\tLongitudinal grid: Failed')
+        print('\tExpected:', (dlong_correct, longs_correct))
+        print('\tGot     :', result)
+
+    print('Test temp_warm:')
+    print('For nlat=5, nlong=6 and same temperature for all longitudes:')
+
+    Temp_correct = np.array([[-21.33, -21.33, -21.33, -21.33, -21.33, -21.33],
+                          [ 14.37,  14.37,  14.37,  14.37, 14.37,  14.37],
+                          [ 26.27,  26.27,  26.27,  26.27, 26.27,  26.27],
+                          [ 14.37,  14.37,  14.37,  14.37, 14.37,  14.37],
+                          [-21.33, -21.33, -21.33, -21.33,-21.33, -21.33]])
+    temp_grid = temp_warm(result[2], result[3])
+    if abs(np.max(temp_grid - Temp_correct)) < 0.01:
+        print('\tTemperature grid: Passed')
+    else:
+        print('\tTemperature grid: Failed')
+        print('\tExpected:', Temp_correct)
+        print('\tGot     :', temp_grid)
 
 
-def temp_warm(lats_in):
+def temp_warm(lats_in, longs_in):
     '''
     Create a temperature profile for modern day "warm" earth.
 
@@ -87,15 +114,18 @@ def temp_warm(lats_in):
 
     # Get base grid:
     npoints = T_warm.size
-    dlat, lats = gen_gird(npoints)
+    dlat, dlong, lats, longs = gen_grid(npoints,1)
 
     # Fit a parabola to the above values
     coeffs = np.polyfit(lats, T_warm, 2)
 
     # Now, return fitting sampled at "lats".
     temp = coeffs[2] + coeffs[1]*lats_in + coeffs[0] * lats_in**2
+    result = np.zeros((lats_in.size, longs_in.size))
+    for i in range(longs_in.size):
+        result[:, i] = temp
 
-    return temp
+    return result
 
 
 def insolation(S0, lats):
@@ -151,7 +181,7 @@ def insolation(S0, lats):
     return insolation
 
 
-def snowball_earth(nlat=18, t_final=10000, dt=1,T_init=temp_warm, apply_sphercorr=False, apply_insol=False, S0=1370, lam=100.0, emiss=1.0, albice=.6, albwater=.3, debug=False):
+def snowball_earth(nlat=18, nlong=36, t_final=10000, dt=1,T_init=temp_warm, apply_sphercorr=False, apply_insol=False, S0=1370, lam=100.0, emiss=1.0, albice=.6, albwater=.3, debug=False):
     '''
     Solve the snowball earth problem.
 
@@ -159,6 +189,8 @@ def snowball_earth(nlat=18, t_final=10000, dt=1,T_init=temp_warm, apply_sphercor
     ----------
     nlat : int, default to 18
         Number of latitude cells.
+    nlong : int, default to 36
+        Number of longitude cells.
     t_final : int or float, default to 10,000
         Time length of simulation in years.
     dt : int or float, default to 1.0
@@ -198,24 +230,21 @@ def snowball_earth(nlat=18, t_final=10000, dt=1,T_init=temp_warm, apply_sphercor
     dt = dt * 365 * 24.0 * 3600
 
     # Set up grid:
-    dlat, lats = gen_gird(nlat)
+    dlat, dlong, lats, longs = gen_grid(nlat, nlong)
 
     # Y-spacing for cells in physical units:
     dy = np.pi * radearth / nlat
 
     #Set initial temperature:
-    T = np.zeros(nlat)
+    T = np.zeros((nlat,nlong))
     if callable(T_init):
-        T = T_init(lats)
+        T += T_init(lats, longs)
     else:
         T += T_init
-
-    '''
-    albedo = np.zeros(nlat)
-    frozen = T <= 0.
-    albedo[frozen] = alb_ice
-    albedo[~frozen] = alb_water
-    '''
+    
+    T[2,14]= 0.
+    T[-3,20]= 0.
+    T[10,10]= -50.
 
     #Create our K matrix for diffusion:
     K=np.zeros((nlat, nlat))
@@ -243,11 +272,19 @@ def snowball_earth(nlat=18, t_final=10000, dt=1,T_init=temp_warm, apply_sphercor
     
     # Define the albedo, it will be initialized at the first iteration of the loop
     #Then it will be updated at each time step
-    albedo = np.zeros(nlat)
+    albedo = np.zeros((nlat,nlong))
 
     if debug:
         print(K)
         print(B)
+        fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+        contour = ax.pcolormesh(np.append((longs-dlong/2),360),np.append((lats-dlat/2),180), T, shading='auto',cmap='coolwarm',vmin=-60,vmax=40)
+        fig.colorbar(contour, ax=ax, label='Temperature (°C)', shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
+        ax.set_xlabel('Longitude (degrees)')
+        ax.set_ylabel('Latitude (degrees)')
+        ax.set_title('Initial Temperature Profile')
+        plt.show()
+    """
     
     for step in range(n_steps):
         #Update albedo:
@@ -262,5 +299,5 @@ def snowball_earth(nlat=18, t_final=10000, dt=1,T_init=temp_warm, apply_sphercor
         radiative = int(apply_insol) * dt/(rho*C*mxdlyr) * ((1-albedo)*insol - emiss * sigma * (T+273)**4)
 
         T = np.matmul(L_inv,T + sphercorr + radiative)
-
+    """
     return lats, T
