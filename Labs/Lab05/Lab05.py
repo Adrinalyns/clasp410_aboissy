@@ -4,6 +4,15 @@ Lab 05 : Snowball Earth
 
 author : Adrien Boissy
 date   : Fall 2025
+
+TO REPRODUCE THE VALUES AND PLOTS IN MY REPORT, DO THIS:
+•   ipython
+•   run Lab05.py
+•   plt.ion()
+•   question_1() : to validate the solver by reproducing Figure 1
+•   question_2() : to answer Q2
+•   question_3() : to answer Q3
+•   question_4() : to answer Q4
 '''
 
 import numpy as np
@@ -208,13 +217,6 @@ def snowball_earth(nlat=18, t_final=10000, dt=1,T_init=temp_warm, apply_sphercor
     else:
         T += T_init
 
-    '''
-    albedo = np.zeros(nlat)
-    frozen = T <= 0.
-    albedo[frozen] = alb_ice
-    albedo[~frozen] = alb_water
-    '''
-
     #Create our K matrix for diffusion:
     K=np.zeros((nlat, nlat))
     K[np.arange(nlat), np.arange(nlat)] = -2.0
@@ -312,7 +314,7 @@ def question_2():
         ax[0].plot(lats - 90., T_final, label=f'$\lambda$ = {lam:.1f} $W/m^2 K$')
     
     T_warm = temp_warm(lats)
-    ax[0].plot(lats - 90., T_warm, label='Warm Earth', color='red', linewidth=3)
+    ax[0].plot(lats - 90., T_warm, label='Current Temperature', color='red', linewidth=3)
 
     ax[0].set_xlabel('Latitude (°)')
     ax[0].set_ylabel('Temperature (°C)')
@@ -330,11 +332,11 @@ def question_2():
         ax[1].plot(lats - 90., T_final, label=f'$\epsilon$ = {emiss:.2f}')
 
     #Plotting the warm earth solution for reference
-    ax[1].plot(lats - 90., T_warm, label='Warm Earth', color='red', linewidth=3)
+    ax[1].plot(lats - 90., T_warm, label='Current Temperature', color='red', linewidth=3)
   
     ax[1].set_xlabel('Latitude (°)')
     ax[1].set_ylabel('Temperature (°C)')
-    ax[1].set_title(f'Varying Emissivity of Earth\n $\lambda$ = {kwargs["lam"]:.2f} $W/m^2 K$')
+    ax[1].set_title(f"Varying Emissivity of Earth's atmosphere\n $\lambda$ = {kwargs['lam']:.2f} $W/m^2 K$")
     ax[1].legend(loc='best')
     
     lam_opt = 35.0
@@ -451,28 +453,60 @@ def question_4():
 
     #Defining a vector of the average temperature at equilibrium for each gamma value
     T_avg_eq_rise = []
+    #Defining a vector of the percentage of ice_free surface at equilibrium for each gamma value
+    ice_pct_rise = []
 
     for gamma in gamma_values_rise:
         kwargs['S0'] = gamma * 1370
         kwargs['T_init'] = T_init
         lats, T_final = snowball_earth(**kwargs)
         T_avg_eq_rise.append(np.mean(T_final))
+        ice_pct_rise.append(100 * np.sum(T_final < -10.) / T_final.size)
         T_init = T_final #Use the final state as initial condition for the next gamma value
-    fig,ax = plt.subplots(1,1)
-    ax.plot(gamma_values_rise, T_avg_eq_rise, marker='o')
 
     gamma_values_drop = np.arange(1.4, gamma_init-0.05, -0.05)
     #Defining a vector of the average temperature at equilibrium for each gamma value
     T_avg_eq_drop = []
+    #Defining a vector of the percentage of ice_free surface at equilibrium for each gamma value
+    ice_pct_drop = []
 
     for gamma in gamma_values_drop:
         kwargs['S0'] = gamma * 1370
         kwargs['T_init'] = T_init
         lats, T_final = snowball_earth(**kwargs)
         T_avg_eq_drop.append(np.mean(T_final))
+        ice_pct_drop.append(100 * np.sum(T_final < -10.) / T_final.size)
         T_init = T_final #Use the final state as initial condition for the next gamma value
-    fig,ax = plt.subplots(1,1)
-    ax.plot(gamma_values_drop, T_avg_eq_drop, marker='o')
+
+    #Plotting the results
+    fig,ax = plt.subplots(1,2, figsize=(15,6))
+
+    ax[0].plot(gamma_values_rise, T_avg_eq_rise, marker='o',color='red')
+    ax[0].tick_params(axis='y', labelcolor='red')
+    ax[0].set_ylabel('Mean Teamperature (°c)',color='red')
+
+    ax1bis = ax[0].twinx()
+    ax1bis.plot(gamma_values_rise,ice_pct_rise,color='cornflowerblue')
+    ax1bis.tick_params(axis='y', labelcolor='cornflowerblue')
+    ax1bis.set_ylabel('Ice coverage (%)',color='cornflowerblue')
+    
+    ax[0].set_xlabel('Solar multiplier factor: $\gamma$ ')
+    ax[0].set_title('Slowly increasing solar constant')
+
+
+    ax[1].plot(gamma_values_drop, T_avg_eq_drop, marker='o',color='red')
+    ax[1].tick_params(axis='y', labelcolor='red')
+    ax[1].set_ylabel('Mean Teamperature (°c)',color='red')
+
+    ax2bis = ax[1].twinx()
+    ax2bis.plot(gamma_values_drop,ice_pct_drop,color='cornflowerblue')
+    ax2bis.tick_params(axis='y', labelcolor='cornflowerblue')
+    ax2bis.set_ylabel('Ice coverage (%)',color='cornflowerblue')
+    
+    ax[1].set_xlabel('Solar multiplier factor: $\gamma$')
+    ax[1].set_title('Slowly decreasing solar constant')
+    ax[1].invert_xaxis()
+    
         
 
 
