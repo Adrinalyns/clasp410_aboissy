@@ -56,7 +56,8 @@ def gen_gird(npoints=18):
 
 def test_functions():
     ''' 
-    Test functions
+    Testing major functions:
+    - gen_gird
     '''
 
     print('Test gen_gird')
@@ -158,7 +159,8 @@ def insolation(S0, lats):
     return insolation
 
 
-def snowball_earth(nlat=18, t_final=10000, dt=1,T_init=temp_warm, apply_sphercorr=False, apply_insol=False, S0=1370, lam=100.0, emiss=1.0, albice=.6, albwater=.3, debug=False):
+def snowball_earth(nlat=18, t_final=10000, dt=1,T_init=temp_warm, apply_sphercorr=False, apply_insol=False,\
+                     S0=1370, lam=100.0, emiss=1.0, albice=.6, albwater=.3, debug=False):
     '''
     Solve the snowball earth problem.
 
@@ -178,7 +180,7 @@ def snowball_earth(nlat=18, t_final=10000, dt=1,T_init=temp_warm, apply_sphercor
         Apply spherical correction term
     apply_insol : bool, default to False
         Apply the radiative transfer
-    s0 : float, default to 1370
+    S0 : float, default to 1370
         Solar constant
     lam : float, default to 100
         Set ocean diffusivity (m^2/s).
@@ -282,8 +284,7 @@ def question_1():
     # Get the initial condition
     T_initial = temp_warm(lats)
 
-    #Create a fancy plot:
-
+    #Create the plot:
     fig,ax = plt.subplots(1,1)
     ax.plot(lats - 90., T_initial, label='Initial Condition', color='deepskyblue', linewidth=4)
     ax.plot(lats - 90., T_final, label='Diffusion',color='red', linewidth=4)
@@ -311,11 +312,13 @@ def question_2():
     for lam in lam_values:
         kwargs['lam']=lam
         lats, T_final = snowball_earth(**kwargs)
-        ax[0].plot(lats - 90., T_final, label=f'$\lambda$ = {lam:.1f} $W/m^2 K$')
+        ax[0].plot(lats - 90., T_final, label=f'$\lambda$ = {lam:.1f} $m^2/s$')
     
+    #Plotting the warm earth solution for reference
     T_warm = temp_warm(lats)
     ax[0].plot(lats - 90., T_warm, label='Current Temperature', color='red', linewidth=3)
 
+    #Customize the plot
     ax[0].set_xlabel('Latitude (°)')
     ax[0].set_ylabel('Temperature (°C)')
     ax[0].set_title(f'Varying Thermal Diffusivity of Ocean\n $\epsilon$ = {kwargs["emiss"]:.2f}')
@@ -334,9 +337,10 @@ def question_2():
     #Plotting the warm earth solution for reference
     ax[1].plot(lats - 90., T_warm, label='Current Temperature', color='red', linewidth=3)
   
+    #Customize the plot
     ax[1].set_xlabel('Latitude (°)')
     ax[1].set_ylabel('Temperature (°C)')
-    ax[1].set_title(f"Varying Emissivity of Earth's atmosphere\n $\lambda$ = {kwargs['lam']:.2f} $W/m^2 K$")
+    ax[1].set_title(f"Varying Emissivity of Earth's atmosphere\n $\lambda$ = {kwargs['lam']:.2f} $m^2/s$")
     ax[1].legend(loc='best')
     
     lam_opt = 35.0
@@ -353,8 +357,8 @@ def question_2():
     ax2.plot(lats - 90., T_final, label='Final State', color='black', linewidth=2)
     ax2.set_xlabel('Latitude (°)')
     ax2.set_ylabel('Temperature (°C)')
-    ax2.set_title(f'To keep the earth as it is today, we need \n \
-                    $\lambda$ = {lam_opt:.2f} $W/m^2 K$ and $\epsilon$ = {emiss_opt:.2f}')
+    ax2.set_title(f'To obtain the current temperature profile on earth: \n \
+                    $\lambda$ = {lam_opt:.2f} $m^2/s$ ,  $\epsilon$ = {emiss_opt:.2f}')
     ax2.legend(loc='best')
     
     plt.show()
@@ -416,16 +420,18 @@ def question_3():
     kwargs['albwater'] = .6
     lats, T_final_flash_freeze = snowball_earth(**kwargs)
 
-    #Plotting the flash freeze equilibrium
+    
     fig2,ax2 = plt.subplots(1,1)
     ax2.plot(lats - 90., T_initial_warm, label='Initial Warm Temperature', color='orange')
+
+    #Plotting the warm earth equilibrium for comparison
+    ax2.plot(lats - 90., T_final_hot, label='Warm Earth Equilibrium', color='red', linestyle='dotted')
+
+    #Plotting the flash freeze equilibrium
     ax2.plot(lats - 90., T_final_flash_freeze, label='Flash Freeze equilibrium', color='cornflowerblue')
 
     #Plotting the snowball earth equilibrium for comparison
     ax2.plot(lats - 90., T_final_cold, label='Snowball Earth equilibrium', color='cornflowerblue', linestyle='dotted')
-
-    #Plotting the warm earth equilibrium for comparison
-    ax2.plot(lats - 90., T_final_hot, label='Warm Earth Equilibrium', color='red', linestyle='dotted')
 
     #Customize the plot
     ax2.set_xlabel('Latitude (°)')
@@ -481,10 +487,12 @@ def question_4():
     #Plotting the results
     fig,ax = plt.subplots(1,2, figsize=(15,6))
 
+    #Plotting the mean temperature vs gamma for the increasing solar constant
     ax[0].plot(gamma_values_rise, T_avg_eq_rise, marker='o',color='red')
     ax[0].tick_params(axis='y', labelcolor='red')
     ax[0].set_ylabel('Mean Teamperature (°c)',color='red')
-
+    
+    #Plotting the ice coverage vs gamma for the increasing solar constant, in the same plot but with a second y-axis
     ax1bis = ax[0].twinx()
     ax1bis.plot(gamma_values_rise,ice_pct_rise,color='cornflowerblue')
     ax1bis.tick_params(axis='y', labelcolor='cornflowerblue')
@@ -493,11 +501,12 @@ def question_4():
     ax[0].set_xlabel('Solar multiplier factor: $\gamma$ ')
     ax[0].set_title('Slowly increasing solar constant')
 
-
+    #Plotting the mean temperature vs gamma for the decreasing solar constant
     ax[1].plot(gamma_values_drop, T_avg_eq_drop, marker='o',color='red')
     ax[1].tick_params(axis='y', labelcolor='red')
     ax[1].set_ylabel('Mean Teamperature (°c)',color='red')
-
+    
+    #Plotting the ice coverage vs gamma for the decreasing solar constant, in the same plot but with a second y-axis
     ax2bis = ax[1].twinx()
     ax2bis.plot(gamma_values_drop,ice_pct_drop,color='cornflowerblue')
     ax2bis.tick_params(axis='y', labelcolor='cornflowerblue')
