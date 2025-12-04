@@ -91,6 +91,12 @@ def test_functions():
         print('\tExpected:', Temp_correct)
         print('\tGot     :', temp_grid)
 
+    print('Testing the datacenter_position function:')
+    coords = np.array([[0,0],[45,89],[-31,183],[68,275],[90,360],[-90,0]])
+    dcpowers = np.array([100e6,200e6,30e6,600e6,150e6,80e6])
+    dc_map = datacenter_position(coords,dcpowers,nlat=18,nlong=36,debug=True)
+    print('Verify visually that all datacenters are correctly placed on the map with the correct power values.')
+
 
 def temp_warm(lats_in, longs_in):
     '''
@@ -181,7 +187,8 @@ def insolation(S0, lats):
     return insolation
 
 
-def snowball_earth(nlat=18, nlong=36, t_final=10000, dt=1,T_init=temp_warm, apply_sphercorr=False, apply_insol=False, S0=1370, lam=100.0, emiss=1.0, albice=.6, albwater=.3, debug=False):
+def snowball_earth(nlat=18, nlong=36, t_final=10000, dt=1,T_init=temp_warm, apply_sphercorr=False, \
+            apply_insol=False, S0=1370, lam=35.0, emiss=0.73, albice=.6, albwater=.3,dc_map=None, debug=False):
     '''
     Solve the snowball earth problem.
 
@@ -211,6 +218,8 @@ def snowball_earth(nlat=18, nlong=36, t_final=10000, dt=1,T_init=temp_warm, appl
         Set emissivity of the earth.
     albice, albwater : float, defaul to .6 and .3
         The albedo of ice and water
+    dc_map : 2D array, default to None
+        A 2D grid (nlat x nlong) with the power of the datacenters in W (it will be converted to W/m^2 over the cell area)
     debug : bool, default to False
         If True, print debugging information.
 
@@ -232,19 +241,19 @@ def snowball_earth(nlat=18, nlong=36, t_final=10000, dt=1,T_init=temp_warm, appl
     # Set up grid:
     dlat, dlong, lats, longs = gen_grid(nlat, nlong)
 
+    #Set up the coordinates of the cell edges:
+    lats_edges = np.linspace(0, 180, nlat+1)
+    longs_edges = np.linspace(0, 360, nlong+1)
+
     # Y-spacing for cells in physical units:
     dy = np.pi * radearth / nlat
 
     #Set initial temperature:
-    T = np.zeros((nlat,nlong))
+    Temp_2D = np.zeros((nlat,nlong))
     if callable(T_init):
-        T += T_init(lats, longs)
+        Temp_2D += T_init(lats, longs)
     else:
-        T += T_init
-    
-    T[2,14]= 0.
-    T[-3,20]= 0.
-    T[10,10]= -50.
+        Temp_2D += T_init
 
     #Create our K matrix for diffusion:
     K=np.zeros((nlat, nlat))
@@ -269,6 +278,13 @@ def snowball_earth(nlat=18, nlong=36, t_final=10000, dt=1,T_init=temp_warm, appl
 
     #Create insolation array
     insol = insolation(S0,lats)
+
+    #Create datacenter power array
+    dc_power = np.zeros((nlat,nlong))
+    if dc_map is not None:
+        dAxy = radearth**2 * np.radians(dlong) * (np.cos(np.radians(lats_edges[:-1]))-np.cos(np.radians(lats_edges[1:])))  # Simplified area of each lat-long cell in m^2
+        # Divide the power of each datacenter by the area of its cell to get W/m^2
+        dc_power =( dc_map.T / dAxy ).T  #Allow to divide each column of dc_map by dAxy
     
     # Define the albedo, it will be initialized at the first iteration of the loop
     #Then it will be updated at each time step
@@ -277,27 +293,119 @@ def snowball_earth(nlat=18, nlong=36, t_final=10000, dt=1,T_init=temp_warm, appl
     if debug:
         print(K)
         print(B)
-        fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-        contour = ax.pcolormesh(np.append((longs-dlong/2),360),np.append((lats-dlat/2),180), T, shading='auto',cmap='coolwarm',vmin=-60,vmax=40)
-        fig.colorbar(contour, ax=ax, label='Temperature (°C)', shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
-        ax.set_xlabel('Longitude (degrees)')
-        ax.set_ylabel('Latitude (degrees)')
-        ax.set_title('Initial Temperature Profile')
-        plt.show()
-    """
+        plot_temp(lats_edges, longs_edges, dc_power*1000, title='Datacenter power distribution', cbar_label='Power Density $(mW/m^2)$', v_min=0, v_max=5)
+        plot_temp(lats_edges, longs_edges, Temp_2D, title='Initial Temperature Profile', v_min=-60, v_max=40)
+    
     
     for step in range(n_steps):
-        #Update albedo:
-        loc_ice = T < -10.
-        albedo[loc_ice] = albice
-        albedo[~loc_ice] = albwater
+        for lon in range(nlong):
+            T = Temp_2D[:,lon]
 
-        # Create spherical coordinate correction term:
-        sphercorr = int(apply_sphercorr) * (lam * dt)/(4 *Axz * dy**2) * np.matmul(B, T) * dAxz
+            #Update albedo:
+            loc_ice = T < -10.
+            albedo[loc_ice] = albice
+            albedo[~loc_ice] = albwater
 
-        #Calculate insolation term
-        radiative = int(apply_insol) * dt/(rho*C*mxdlyr) * ((1-albedo)*insol - emiss * sigma * (T+273)**4)
+            # Create spherical coordinate correction term:
+            sphercorr = int(apply_sphercorr) * (lam * dt)/(4 *Axz * dy**2) * np.matmul(B, T) * dAxz
 
-        T = np.matmul(L_inv,T + sphercorr + radiative)
+            #Calculate insolation term
+            radiative = int(apply_insol) * dt/(rho*C*mxdlyr) * ((1-albedo[:,lon])*insol - emiss * sigma * (T+273)**4)
+
+            T = np.matmul(L_inv,T + sphercorr + radiative)
+            Temp_2D[:,lon] = T
+    
+        if debug:
+            if step % 2000 == 0:
+                print('At time step ', step, ' / ', n_steps)
+                plot_temp(lats_edges, longs_edges, Temp_2D, title=f'Temperature Profile at step {step}', v_min=-60, v_max=40)
+    
+    return lats, longs, Temp_2D
+
+def plot_temp(lats_edges, longs_edges, Temp_2D, title='Temperature Profile', cbar_label='Temperature (°C)', v_min=-60, v_max=40, **kwargs):
     """
-    return lats, T
+    Plot the temperature across the globe, by using a 2D colormap.
+    The abscissa represents the longitude and the ordinate the latitude,
+    the color represents the temperature: a diverging colormap is used,
+    with blue for cold temperatures and red for warm temperatures, 
+    and the diverging point is set at -10°C to make the distinction 
+    between frozen and ice free areas.
+    """
+    fig, ax = plt.subplots(1, 1, figsize=(13, 8))
+
+    contour =plt.pcolormesh(longs_edges, lats_edges-90., Temp_2D, shading='auto', cmap='coolwarm', vmin=v_min, vmax=v_max, **kwargs)
+    fig.colorbar(contour, ax=ax, label=cbar_label, shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
+    ax.set_xlabel('Longitude (degrees)')
+    ax.set_ylabel('Latitude (degrees)')
+    ax.set_title(title)
+
+    for i in range(len(lats_edges)-1):
+        for j in range(len(longs_edges)-1):
+            ax.text((longs_edges[j] + longs_edges[j+1])/2, (lats_edges[i] + lats_edges[i+1])/2 - 90., f'{Temp_2D[i,j]:.1f}', ha='center', va='center', color='black', fontsize=6)
+    plt.show()
+
+    return fig,ax
+
+def datacenter_position(coords,dcpowers,nlat=18,nlong=36,debug=False):
+    """
+    Given a list of coordinates (latitude, longitude) in degrees representing the position of datacenters
+    and a list of their respective power in W,
+    This function creates a 2D map of the earth (nlat x nlong), 
+    and places the datacenters total power at the closest grid points to the given coordinates.
+
+    Parameters
+    ------------
+    nlat : int, default to 18
+        Number of latitude cells.
+    nlong : int, default to 36
+        Number of longitude cells.
+    coords : np.array 
+        The coordinates of each datacenter
+    dcpowers :  np.array
+        The power of each datacenter
+
+    Returns
+    ------------
+    dc_map : 2D array
+        A 2D grid (nlat x nlong) with the power of each datacenter in W 
+
+    """
+    dc_map=np.zeros((nlat,nlong))
+
+    dlat = 180/nlat
+    dlong = 360/nlong
+
+    lat_pos = ((coords[:,0]+90)//(dlat+0.0001)).astype(int) #Adding a very small number to dlat, so that when the latitude is exactly 90,
+                                                            # it does not go out of bounds
+    long_pos = (coords[:,1]//(dlong+0.0001)).astype(int)    #Adding a very small number to dlong, so that when the latitude is exactly 360,
+                                                            # it does not go out of bounds
+
+    for index_dc in range(coords.shape[0]):
+        dc_map[lat_pos[index_dc],long_pos[index_dc]]=dcpowers[index_dc]
+
+    if debug:
+        lats_edges = np.linspace(0, 180, nlat+1)
+        longs_edges = np.linspace(0, 360, nlong+1)
+        fig,ax = plot_temp(lats_edges, longs_edges, dc_map/1e6, title='Datacenter power distribution', cbar_label='Power Density $(MW)$', v_min=0, v_max=300)
+        
+        for index,(x,y) in enumerate(coords):
+            ax.plot(y,x,'+',color='lime',markersize=15)
+            ax.text(y+3,x+5,f"{dcpowers[index]/1e6:.1f} MW",color='lime',weight='bold')
+
+    return dc_map
+
+def question_1():
+    '''
+    '''
+
+    nlats = 18
+    nlongs = 36
+
+
+
+    lats, longs, Temp_final = snowball_earth(nlat=nlats, nlong=nlongs, t_final=10000, dt=1, T_init=temp_warm, \
+                                            apply_sphercorr=True, apply_insol=True, S0=1370, lam=35.0, emiss=0.73, \
+                                            albice=.6, albwater=.3, debug=True)
+
+
+
