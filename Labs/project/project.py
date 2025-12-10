@@ -2,9 +2,16 @@
 '''
 Project : Turning snowball earth model, into a 2D lat-lon model.
 Only latitudinal diffusion is considered here.
-We will consider the day/night influence as well as the sun angle.
-With this model, we will try to find the current temperature profile of the earth.
-Then we will add some parse datacenters on the polar region to see their influence.
+We will add a heterogenous Anthropogenic Heat Flux, 
+and analyze its consequence on global and local climate
+
+To reproduce each plot of this study, write the following instruction in a terminal:
+•   ipython
+•   run project.py
+•   plt.ion()
+•   question_1() : to validate the solver by reproducing Figure 1
+•   question_2() : to answer Q2
+•   question_3() : to answer Q3
 
 '''
 
@@ -270,8 +277,8 @@ def snowball_earth(nlat=18, nlong=36, t_final=10000, dt=1,T_init=temp_warm, appl
     B[np.arange(1,nlat-1),np.arange(2,nlat)] = 1.0
 
     # Create area array:
-    Axz = np.pi * ((radearth + 50)**2 - (radearth)**2) * np.sin(np.pi/180.*lats)
-
+    Axz = np.pi * ((radearth + 50)**2 - (radearth)**2) * np.sin(np.pi/180.*lats)/nlong
+    
     # Get derivative of Area:
     dAxz = np.matmul(B, Axz)
 
@@ -281,9 +288,9 @@ def snowball_earth(nlat=18, nlong=36, t_final=10000, dt=1,T_init=temp_warm, appl
     #Create datacenter power array
     dc_power = np.zeros((nlat,nlong))
     if dc_map is not None:
-        dAxy = radearth**2 * np.radians(dlong) * (np.cos(np.radians(lats_edges[:-1]))-np.cos(np.radians(lats_edges[1:])))  # Simplified area of each lat-long cell in m^2
+        Axy = radearth**2 * np.radians(dlong) * (np.cos(np.radians(lats_edges[:-1]))-np.cos(np.radians(lats_edges[1:])))  # Simplified area of each lat-long cell in m^2
         # Divide the power of each datacenter by the area of its cell to get W/m^2
-        dc_power =( dc_map.T / dAxy ).T  #Allow to divide each column of dc_map by dAxy
+        dc_power =( dc_map.T / Axy ).T  #Allow to divide each column of dc_map by dAxy
     
     # Define the albedo, it will be initialized at the first iteration of the loop
     #Then it will be updated at each time step
@@ -321,14 +328,32 @@ def snowball_earth(nlat=18, nlong=36, t_final=10000, dt=1,T_init=temp_warm, appl
     
     return lats, longs, Temp_2D
 
+
 def plot_temp(Temp_2D, title='Temperature Profile', cbar_label='Temperature (°C)', v_min=-60, v_max=40, numbers=True, **kwargs):
     """
     Plot the temperature across the globe, by using a 2D colormap.
-    The abscissa represents the longitude and the ordinate the latitude,
-    the color represents the temperature: a diverging colormap is used,
-    with blue for cold temperatures and red for warm temperatures, 
+    the color represents the temperature: a diverging colormap is used, 
     and the diverging point is set at -10°C to make the distinction 
     between frozen and ice free areas.
+
+    Parameters
+    ------------
+    Temp_2D : 2D array
+        The 2D array containing the temperatures to be plotted across the globe
+    title : string
+        The title of the generated graph
+    cbar_label : string
+        The label of the colorbar
+    v_min, v_max : float, default to -60, 40
+        The minimal and maximal value of the colorbar use to plot the colormap
+    numbers : bool
+        If True, the value of each cell is plotted inside the cell
+    
+    Returns
+    ------------
+    fig, ax : figure, ax
+        It returns the figure and the ax so that it could be reused
+
     """
     nlat, nlong = Temp_2D.shape
     lats_edges = np.linspace(0, 180, nlat+1)
@@ -336,7 +361,7 @@ def plot_temp(Temp_2D, title='Temperature Profile', cbar_label='Temperature (°C
 
     fig, ax = plt.subplots(1, 1, figsize=(12, 7))
 
-    contour =plt.pcolormesh(longs_edges, lats_edges-90., Temp_2D, shading='auto', cmap='coolwarm', vmin=v_min, vmax=v_max, **kwargs)
+    contour =plt.pcolormesh(longs_edges, lats_edges-90., Temp_2D, shading='auto', cmap='seismic', vmin=v_min, vmax=v_max, **kwargs)
     fig.colorbar(contour, ax=ax, label=cbar_label, shrink=.8, fraction=.08, location='bottom', orientation='horizontal')
     ax.set_xlabel('Longitude (degrees)')
     ax.set_ylabel('Latitude (degrees)')
@@ -349,7 +374,8 @@ def plot_temp(Temp_2D, title='Temperature Profile', cbar_label='Temperature (°C
 
     return fig,ax
 
-def datacenter_position(coords,dcpowers,nlat=18,nlong=36,debug=False):
+
+def anthropogenic_power_map(coords,dcpowers,nlat=18,nlong=36,debug=False):
     """
     Given a list of coordinates (latitude, longitude) in degrees representing the position of datacenters
     and a list of their respective power in W,
@@ -366,6 +392,9 @@ def datacenter_position(coords,dcpowers,nlat=18,nlong=36,debug=False):
         The coordinates of each datacenter
     dcpowers :  np.array
         The power of each datacenter
+    debug : bool
+        If True, the function prints the power map that it has generated 
+        and the original position of the heat sources
 
     Returns
     ------------
@@ -386,8 +415,9 @@ def datacenter_position(coords,dcpowers,nlat=18,nlong=36,debug=False):
     for index_dc in range(coords.shape[0]):
         dc_map[lat_pos[index_dc],long_pos[index_dc]]+=dcpowers[index_dc]
 
+    #Debug part: it prints the AHF map creating and the coordinate of major city to see if they match the cells
     if debug:
-        fig,ax = plot_temp(dc_map/1e6, title='Datacenter power distribution', cbar_label='Power Density $(MW)$', v_min=0, v_max=300)
+        fig,ax = plot_temp(dc_map/1e6, title='Datacenter power distribution', cbar_label='Anthropogenic Power $(MW)$', v_min=-700., v_max=700.)
         
         for index,(x,y) in enumerate(coords):
             ax.plot(y,x,'+',color='lime',markersize=15)
@@ -395,21 +425,41 @@ def datacenter_position(coords,dcpowers,nlat=18,nlong=36,debug=False):
 
     return dc_map
 
+
+def question_1():
+    """
+    Reproducing Figure 1:
+    Equilibrium temperature over the globe without AHF
+    """
+    nlats = 18
+    nlongs = 36
+    lats, longs, Temp_final = snowball_earth(nlat=nlats, nlong=nlongs, t_final=10000, dt=1, T_init=temp_warm, \
+                                            apply_sphercorr=True, apply_insol=True, S0=1370, lam=35.0, emiss=0.73, \
+                                            albice=.6, albwater=.3)
+    plot_temp(Temp_final,title='Final Temperature Profile without Anthopogenic Heat Flux', v_min=-60, v_max=40, numbers=True)
+
+
 def question_2():
     '''
+    Verifying the anthropogenic_power_map() function, and analyzing the warming caused by the 12 biggest datacenters
     '''
 
     nlats = 18
     nlongs = 36
-    coords = np.array([[50,9],[40,353],[40,269],[19,73],[42,272],[33,248],[34,276],[40,248],\
-                        [52,357],[41,264],[36,245],[40,117],[46,127],[39,240],[41,112]])
-    dcpowers = np.array([60, 12, 40, 50, 100, 50, 100, 65, 148, 100, 315, 150, 200, 650,150])*1e6  # Powers in W
-    dc_map = datacenter_position(coords,dcpowers,nlat=18,nlong=36,debug=True)
 
+    #12 biggest datacenters
+    coords = np.array([[50,9],[40,353],[40,269],[19,73],[42,272],[34,276],\
+                        [52,357],[41,264],[36,245],[40,117],[46,127],[39,240],[41,112]])
+    dcpowers = np.array([60, 12, 40, 50, 100, 100, 148, 100, 315, 150, 200, 650,150])*1e6  # Powers in W
     
+    #Validating anthropogenic_power_map()
+    dc_map = anthropogenic_power_map(coords,dcpowers,nlat=18,nlong=36,debug=True)
+
+    #Analyzing the temperature equilibrium with the AHF
     lats, longs, Temp_final = snowball_earth(nlat=nlats, nlong=nlongs, t_final=10000, dt=1, T_init=temp_warm, \
                                             apply_sphercorr=True, apply_insol=True, S0=1370, lam=35.0, emiss=0.73, \
-                                            albice=.6, albwater=.3,dc_map=dc_map, debug=True)
+                                            albice=.6, albwater=.3,dc_map=dc_map)
+    plot_temp(Temp_final, title=f'Final Temperature Profile with the 12 biggest datacenters', v_min=-60, v_max=40, numbers=True)
     
 
 def question_3():
@@ -417,64 +467,25 @@ def question_3():
     Considering a total power of 35 GW distributed over the world, 
     see how the configuration of datacenters affects the final temperature profile.
     '''
-    P_tot = 35e9  # Total power in W
-    nlats = 18
-    nlongs = 36
-    kwargs = {'nlat':nlats, 'nlong':nlongs, 't_final':10000, 'dt':1, 'T_init':temp_warm, \
-              'apply_sphercorr':True, 'apply_insol':True, 'S0':1370, 'lam':35.0, 'emiss':0.73, \
-              'albice':.6, 'albwater':.3, 'debug':False}
-
-    """
-    #Case 1: All datacenters at the equator in a singular cell
-    coords=[[0,180]]
-    dcpowers=[P_tot]
-    dc_map = datacenter_position(np.array(coords),np.array(dcpowers),nlat=nlats,nlong=nlongs,debug=False)
-    kwargs['dc_map']=dc_map
-    lats, longs, Temp_final_eq = snowball_earth(**kwargs)
-    """
-
-    #Case 2: All datacenters in north pole in a singular cell
-    coords=[[85,180]]
-    dcpowers=[P_tot]
-    dc_map = datacenter_position(np.array(coords),np.array(dcpowers),nlat=nlats,nlong=nlongs,debug=False)
-    kwargs['dc_map']=dc_map
-    lats, longs, Temp_final_np = snowball_earth(**kwargs)
-    plot_temp(Temp_final_np, title='Final Temperature Profile with all datacenters at North Pole', v_min=-60, v_max=40, numbers=False)
-
-
-def question_4():
-    '''
-    Considering a total power of 35 GW distributed over the world, 
-    see how the configuration of datacenters affects the final temperature profile.
-    '''
-    P_tot = 145e15/(24*365)  # Total power in W
+    P_tot = 16.6e12  # Total power in W
     nlats = 30
-    nlongs = 180
-    kwargs = {'nlat':nlats, 'nlong':nlongs, 't_final':10000, 'dt':1, 'T_init':temp_warm, \
+    nlong_array = np.array([18,72,126,180])
+    lat_city = 40
+    kwargs = {'nlat':nlats, 't_final':10000, 'dt':1, 'T_init':temp_warm, \
               'apply_sphercorr':True, 'apply_insol':True, 'S0':1370, 'lam':35.0, 'emiss':0.73, \
               'albice':.6, 'albwater':.3, 'debug':False}
 
-    """
-    #Case 1: All datacenters at the equator in a singular cell
-    coords=[[0,180]]
-    dcpowers=[P_tot]
-    dc_map = datacenter_position(np.array(coords),np.array(dcpowers),nlat=nlats,nlong=nlongs,debug=False)
-    kwargs['dc_map']=dc_map
-    lats, longs, Temp_final_eq = snowball_earth(**kwargs)
-    """
 
-    #Case 2: All datacenters in north pole in a singular cell
-    dc_map = np.zeros((nlats,nlongs))
-    
-    for k in range(0,nlongs,18):
-        dc_map[-7][k] = 0*18*P_tot/nlongs  #
-    print(np.sum(dc_map))
-    plot_temp(dc_map/1e12, title='Datacenter power distribution', cbar_label='Power Density $(TW)$', v_min=0, v_max=2, numbers=False)
-    kwargs['dc_map']=dc_map
-    lats, longs, Temp_final_np = snowball_earth(**kwargs)
-    plot_temp(Temp_final_np, title='Final Temperature Profile with all datacenters at North Pole', v_min=-60, v_max=40, numbers=False)
-    dlong = 360 / nlongs
-    lats_edges = np.linspace(0, 180, nlats+1)
-    dAxy = radearth**2 * np.radians(dlong) * (np.cos(np.radians(lats_edges[:-1]))-np.cos(np.radians(lats_edges[1:])))  # Simplified area of each lat-long cell in m^2
-    mean_temp = np.sum(Temp_final_np.T * dAxy).sum() / (4 * np.pi * radearth**2)
-    print(f'Mean global temperature with datacenters at north pole: {mean_temp:.2f} °C')
+    coords = np.array([ [lat_city,18],[lat_city,54],[lat_city,90],[lat_city,126],[lat_city,162],\
+                    [lat_city,198],[lat_city,234],[lat_city,270],[lat_city,306],[lat_city,342] ])
+    powers = np.zeros(10) + P_tot/10.
+
+    mean_temp_array = np.zeros(len(nlong_array))
+
+    for index, nlongs in enumerate(nlong_array): 
+        kwargs['nlong']=nlongs
+        dc_map = anthropogenic_power_map(coords,powers,nlat= nlats, nlong=nlongs,debug=False)
+        
+        kwargs['dc_map']=dc_map
+        lats, longs, Temp_final = snowball_earth(**kwargs)
+        plot_temp(Temp_final, title=f'Final Temperature Profile with 10 Megalopolis and {nlongs} longitudes', v_min=-60, v_max=40, numbers=False)
